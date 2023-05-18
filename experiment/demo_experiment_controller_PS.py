@@ -33,15 +33,17 @@ class Error(Exception):
 
 # Define variables.
 
-ISI = 200#500                     	                                                                      # Interstimulus interval (milliseconds).
-n_stim = 30                                                                                           # Number of bips within a sequence.
+ISI = 500                     	                                                                      # Interstimulus interval (milliseconds).
+
+n_stim = 10                                                                                           # Number of bips within a sequence.
 n_trials_percond = 1		                                                                          # Number of trials per condition.
 n_blocks = 1                 	                                                                      # Number of blocks.
 n_subj_max = 1              	   	                                                                  # Maximum number of subjects.
-perturb_bip_range = (17,22)		                                                                      # Perturbation bip range.
+perturb_bip_range = (6,8)#(17,22)		                                                                      # Perturbation bip range.
 
 perturb_type_dictionary = {'PS':1}      														      # Perturbation type dictionary. 0--> Step change. 1--> Phase shift.                                     
-perturb_size_dictionary = {'neg':-50, 'neg2':-20, 'iso':0, 'pos2':20, 'pos':50}					      # Perturbation size dictionary.
+#perturb_size_dictionary = {'neg':-50, 'neg2':-20, 'iso':0, 'pos2':20, 'pos':50}					      # Perturbation size dictionary.
+perturb_size_dictionary = {'neg':-50, 'iso':0, 'pos':50}					      # Perturbation size dictionary.
                                                             
 condition_dictionary_df = tp.Condition_Dictionary(perturb_type_dictionary, perturb_size_dictionary)   # Possible conditions dictionary.
 n_conditions = len(condition_dictionary_df) 														  # Number of conditions.
@@ -264,7 +266,8 @@ else:
             perturb_type_aux = (block_conditions_df.loc[[trial],['Perturb_type']].values.tolist())[0][0]
 
 			# Send message with conditions to arduino.
-            message = str.encode(";S%c;F%c;N%c;A%d;I%d;n%d;P%d;B%d;T%d;X" % ('B', 'B', 'B', 125, ISI, n_stim, perturb_size_aux, perturb_bip_aux, perturb_type_aux))
+#            message = str.encode(";S%c;F%c;N%c;A%d;I%d;n%d;P%d;B%d;T%d;X" % ('B', 'B', 'B', 125, ISI, n_stim, perturb_size_aux, perturb_bip_aux, perturb_type_aux))
+            message = str.encode("S%c;F%c;N%c;A%d;I%d;n%d;P%d;B%d;T%d;X" % ('B', 'B', 'B', 125, ISI, n_stim, perturb_size_aux, perturb_bip_aux, perturb_type_aux))
             arduino.write(message)
             messages.append(message.decode())
 

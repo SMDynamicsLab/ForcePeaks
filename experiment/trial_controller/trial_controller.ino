@@ -411,10 +411,6 @@ void parse_data(char *line) {                                   //B15(Bip de per
         break;
     }
     line += n+1;
-//    if (*line != ';')
-  //    break;
-//    while (*line == ';')
-//      line++;
   }
   return;
 }
@@ -429,7 +425,8 @@ void get_parameters() {
   
   //directly read next available character from buffer
   //if flow ever gets here, then next available character should be 'I'
-  aux = Serial.read();
+//  while (Serial.available() < 1) {}
+//  aux = Serial.read();
 
   while (Serial.available() < 1) {
       t = millis();
@@ -443,6 +440,8 @@ void get_parameters() {
         }
       } 
   }
+  aux = Serial.read();
+
   //read buffer until getting an X (end of message)
   while (aux != 'X') {
   //keep reading if input buffer is empty
@@ -454,7 +453,8 @@ void get_parameters() {
   line[i] = '\0';         //terminate the string
 
   //just in case, clear incoming buffer once read
-  Serial.flush();
+//  Serial.flush();
+  while(Serial.read()>=0);
   //parse input chain into parameters
   parse_data(line);
   return;
@@ -505,7 +505,8 @@ void loop() {
   if(allow == false){   //ALLOW = FALSE, PERMITE QUE SE LEA UN MENSAJE DESDE PYTHON
       
     //just in case, clear incoming buffer once read
-    Serial.flush();
+//    Serial.flush();
+    while(Serial.read()>=0);
         
     get_parameters();   //LEE MENSAJE DE PYTHON DESDE EL SERIAL HASTA QUE ENCUENTRA UNA "X". EL ALGORITMO INTERPRETA LA "X" COMO FIN DE MENSAJE DESDE PYTHON. 
     prevISI = isi;      //GUARDA EN VARIABLE AUXILIAR prevISI EL PERÍODO ORIGINAL isi 

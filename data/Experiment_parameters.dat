@@ -1,0 +1,1 @@
+{"ISI": 500, "n_stim": 10, "n_trials_percond": 1, "n_blocks": 1, "n_subj_max": 1, "perturb_bip_range": [6, 8], "perturb_type_dictionary": {"PS": 1}, "perturb_size_dictionary": {"neg": -50, "iso": 0, "pos": 50}, "n_conditions": 3, "n_trials": 3, "path": "../data/"}
