@@ -12,8 +12,7 @@ import random
 import os
 import pandas as pd
 import json
-from sorcery import dict_of
-import string 
+import string
 import tappinduino as tp
 
 
@@ -42,6 +41,11 @@ def get_effectors(condition):
 def get_periods(condition):
 	periods = [x[1] for x in condition]
 	return periods
+# make dictionary out of list of variable names
+def vars2dict(varnames): # e.g. varnames=['var1','var2']
+	varvalues = globals()
+	vardict = {var: varvalues[var] for var in varnames}
+	return vardict
 
 
 
@@ -76,7 +80,8 @@ with open(recorded_subject_numbers_fname, "a+") as fp:
 	fp.write(subj_number_fullstring + '\n') # keep the \n at the end here
 
 # save experiment parameters
-experiment_parameters_dict = dict_of(period_list_dict,n_stims,n_trials_perblock,n_blocks,conditions_order,path)
+# experiment_parameters_dict = dict_of(period_list_dict,n_stims,n_trials_perblock,n_blocks,conditions_order,path)
+experiment_parameters_dict = vars2dict(['period_list_dict','n_stims','n_trials_perblock','n_blocks','conditions_order','path'])
 with open(path + subj_number_fullstring + '_experiment_parameters.dat', 'w') as fp:
 	json.dump(experiment_parameters_dict, fp)
 
@@ -162,7 +167,8 @@ for block in range(0,n_blocks):
 		asyn_df = tp.Compute_Asyn(stim_time,resp_time)
 
 		# save parsed trial data
-		trial_data_dict = dict_of(data,stim_time,resp_time,asyn_df)
+# 		trial_data_dict = dict_of(data,stim_time,resp_time,asyn_df)
+		trial_data_dict = vars2dict(['data','stim_time','resp_time','asyn_df'])
 		with open(parseddata_fname, "w") as fp:
 			json.dumps(trial_data_dict, fp)
 
@@ -174,7 +180,8 @@ for block in range(0,n_blocks):
 	print("Fin del bloque!\n")
 	block = block + 1
 
-	block_data_dict = dict_of(block_conditions, messages)
+# 	block_data_dict = dict_of(block_conditions, messages)
+	block_data_dict = vars2dict(['block_conditions','messages'])
 	with open(block_fname, "w") as fp:
 		json.dumps(block_data_dict, fp)
 
