@@ -13,7 +13,7 @@ import os
 import pandas as pd
 import json
 from sorcery import dict_of
-from string import upper
+import string 
 import tappinduino as tp
 
 
@@ -25,10 +25,10 @@ n_stims = 10 # number of bips in a sequence
 effector_list_dict = {'D':'dedo', 'M':'mano'}
 period_list_dict = {1:444, 2:666} # interstimulus intervals (ms)
 
-n_trials_perblock = 5 # (multiple of number of pairs of periods) + 1
+n_trials_perblock = 2 # (multiple of number of pairs of periods) + 1
 n_blocks = 4 # either DMMD or MDDM
 
-noise_amp = 40
+noise_amp = 120
 
 path = '../data/'
 recorded_subject_pseudos_fname = path + 'pseudonyms.dat'
@@ -49,9 +49,8 @@ def get_periods(condition):
 
 
 
-# get condition presentation orders
+# get condition presentation orderstom
 presentation_orders_df = pd.read_csv(presentation_orders_fname,index_col='Trial')
-
 
 if os.path.exists(recorded_subject_numbers_fname):
 	# get last recorded subject
@@ -99,7 +98,7 @@ for block in range(0,n_blocks):
 	messages = [] # history of messages to arduino
 
 	effector = block_effectors[0] # assumes same effector for the whole block
-	print("Preparar efector: " + upper(effector_list_dict['effector']))
+	print("Preparar efector: " + effector_list_dict['effector'].upper())
 	input("Cuando el efector esté listo, presione Enter para comenzar el bloque (%d/%d): " % (block+1,n_blocks))
 
 	# trial loop
@@ -121,7 +120,6 @@ for block in range(0,n_blocks):
 		message = str.encode("S%c;F%c;N%c;A%d;I%d;n%d;X" % ('B', 'B', 'B', noise_amp, ISI, n_stims))
 		arduino.write(message)
 		messages.append(message.decode())
-
 		# (trial under arduino control)
 
 		# read information from arduino
