@@ -36,7 +36,7 @@ unsigned int fdbkFreq = 660;//(C6) // defines the frequency (i.e., pitch) of the
 
 int vg = 0; //VALOR EN ENTERO DE LA MEDICIÓN DEL 0V VIRTUAL ENTREGADO POR EL SHIELD, ESCALADO A 10BIT (1024)
 int read_vg = 0;  //TOMA SU VALOR DE LA FUNCIÓN READVIRTUALGROUND()
-int amplitude = 1;  //SE USA EN VARIOS LADOS. TODAVÍA NO SÉ PARA QUE ES?????????????????????
+int amplitude = 0;  //SE USA EN VARIOS LADOS. TODAVÍA NO SÉ PARA QUE ES?????????????????????
 
 uint16_t phaseIncrementStim = 0;  // 16 bit delta     //ESTOS CUATRO SE USAN PARA MODIFICAR EL INDEX DEL ARREGLO DE LA SEÑAL SENOIDAL, PERO NO ENTIENDO COMO FUNCIONA. HACE UN CORRIMIENTO????
 uint16_t phaseIncrementFdbk = 0; // 16 bit delta
@@ -180,9 +180,9 @@ ISR(TIMER3_OVF_vect) {
 
 
 ISR(TIMER2_OVF_vect){   //TIMER PARA RUTINA DE RUIDO BLANCO
-  OCR2A = 127;
+  OCR2A = vg ;//127;
   if(noise==true)
-    OCR2B = generateNoise(amplitude, vg);
+    OCR2B = vg  ;//generateNoise(amplitude, vg);
   else
     OCR2B = vg;    
   }
@@ -226,7 +226,7 @@ void initTimers(void){                                //FUNCIÓN PARA INICIALIZA
   //Dos Registros del timer2
   TCCR2A  = _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
   //TCCR2B  = _BV(CS20) | _BV(WGM22);   //NO PRESCALER
-  TCCR2B  = _BV(CS21) | _BV(WGM22);   //PRESCALER EN 8
+  TCCR2B  = _BV(CS21);// | _BV(WGM22);   //PRESCALER EN 8
   //TCCR2B  = _BV(CS21) | _BV(CS20) | _BV(WGM22);   //PRESCALER EN 32 
   //TCCR2B  = _BV(CS22) | _BV(WGM22);   //PRESCALER EN 64 
   //TCCR2B  = _BV(CS22) | _BV(CS20) | _BV(WGM22);   //PRESCALER EN 128 
@@ -304,7 +304,7 @@ for 'n', freq is the amplitud in GenerateNoise, meaning the volume of the white 
 
   
     case 'n':
-      amplitude = freq;
+//      amplitude = freq;    
       if(right && left ==1)
         noise = true;
       else noise = false;
@@ -427,7 +427,7 @@ void get_parameters() {
   //if flow ever gets here, then next available character should be 'I'
 //  while (Serial.available() < 1) {}
 //  aux = Serial.read();
-
+  SoundSwitch('n',0,NL,NR); // Para agregar ruido
   while (Serial.available() < 1) {
       t = millis();
       //allow user to tap while waiting for data from computer
@@ -527,7 +527,7 @@ void loop() {
     t = millis();     //REGISTRA EN t EL TIEMPO ACTUAL
 
     //Turn on noise
-    SoundSwitch('n',amplitude,NL,NR);     //ENVÍA SONIDO BLANCO A AMBOS OÍDOS
+    SoundSwitch('n',0,NL,NR);     //ENVÍA SONIDO BLANCO A AMBOS OÍDOS
 
     //Perturbation
     if (stim_number == perturb_bip){

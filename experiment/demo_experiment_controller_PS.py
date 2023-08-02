@@ -33,7 +33,8 @@ class Error(Exception):
 
 # Define variables.
 
-ISI = 500                     	                                                                      # Interstimulus interval (milliseconds).
+ISI = 500  
+noise_amp = 125                   	                                                                      # Interstimulus interval (milliseconds).
 
 n_stim = 10                                                                                           # Number of bips within a sequence.
 n_trials_percond = 1		                                                                          # Number of trials per condition.
@@ -106,8 +107,8 @@ if start_or_generate_response == 'G':
 else:
 
     # Communicate with arduino.
-    #arduino = serial.Serial('COM4', 9600)
-    arduino = serial.Serial('/dev/ttyACM0', 9600)
+    arduino = serial.Serial('COM3', 9600)
+    #arduino = serial.Serial('/dev/ttyACM0', 9600)
 	   
     # Open Presentation_orders.csv file as dataframe.
     presentation_orders_df = pd.read_csv(presentation_orders,index_col='Trial')
@@ -267,7 +268,7 @@ else:
 
 			# Send message with conditions to arduino.
 #            message = str.encode(";S%c;F%c;N%c;A%d;I%d;n%d;P%d;B%d;T%d;X" % ('B', 'B', 'B', 125, ISI, n_stim, perturb_size_aux, perturb_bip_aux, perturb_type_aux))
-            message = str.encode("S%c;F%c;N%c;A%d;I%d;n%d;P%d;B%d;T%d;X" % ('B', 'B', 'B', 125, ISI, n_stim, perturb_size_aux, perturb_bip_aux, perturb_type_aux))
+            message = str.encode("S%c;F%c;N%c;A%d;I%d;n%d;P%d;B%d;T%d;X" % ('B', 'B', 'B', noise_amp, ISI, n_stim, perturb_size_aux, perturb_bip_aux, perturb_type_aux))
             arduino.write(message)
             messages.append(message.decode())
 
