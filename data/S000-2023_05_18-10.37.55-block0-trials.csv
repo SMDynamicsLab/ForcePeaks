@@ -1,4 +1,0 @@
-Trial,Block,Subject,Original_trial,Condition,Perturb_type,Perturb_size,Perturb_bip,Valid_trial,Message,Error
-0,0,0,0,2,1,50,7,1,SB;FB;NB;A125;I500;n10;P50;B7;T1;X,NoError
-1,0,0,1,0,1,-50,7,1,SB;FB;NB;A125;I500;n10;P-50;B7;T1;X,NoError
-2,0,0,2,1,1,0,6,1,SB;FB;NB;A125;I500;n10;P0;B6;T1;X,NoError

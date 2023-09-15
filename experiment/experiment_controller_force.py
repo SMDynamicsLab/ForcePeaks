@@ -29,7 +29,7 @@ effector_list_dict = {'D':'dedo', 'M':'mano'}
 period_list_dict = {'1':444, '2':666} # interstimulus intervals (ms)
 
 n_trials_perblock = 9 # (multiple of number of pairs of periods) + 1
-n_blocks = 1 # either DMMD or MDDM
+n_blocks = 4 # either DMMD or MDDM
 
 sensorThreshold  = 50
 noise_amp = 120
@@ -70,8 +70,7 @@ if os.path.exists(recorded_subject_numbers_fname):
 		subj_number = last_subj_number + 1
 else:
 	# first subject ever
-	subj_number = 1
-
+	subj_number = 0
 subj_number_fullstring = 'S' + '{0:0>2}'.format(subj_number)
 # get conditions presentation order
 conditions_order = presentation_orders_df[['Block',subj_number_fullstring]]
@@ -92,8 +91,8 @@ experiment_parameters_dict = vars2dict(['period_list_dict','n_stims','n_trials_p
 
 
 # open arduino serial port
-# arduino = serial.Serial('COM3', 9600) # windows 115200
-arduino = serial.Serial('COM3', 115200)
+# arduino = serial.Serial('COM3', 9600) # windows 115200 57600
+arduino = serial.Serial('COM3', 57600)
 # arduino = serial.Serial('/dev/ttyACM0', 9600) # linux
 
 # block loop
@@ -133,7 +132,7 @@ for block in range(0,n_blocks):
         arduino.write(message)
         messages.append(message.decode())
 		# (trial under arduino control)
-
+        print("mensaje enviado")
 		# read information from arduino
         data = []
         aux = arduino.readline().decode()
@@ -141,6 +140,7 @@ for block in range(0,n_blocks):
             data.append(aux)
             aux = arduino.readline().decode()
             
+        print("leyo el data")
         # # read information from arduino Force (Voltajes)
         # data = []
         # aux = arduino.readline().decode()
@@ -183,7 +183,7 @@ for block in range(0,n_blocks):
                 # resp_number.append(e_number[events])
                 voltage_value.append(e_time[events])
             
-
+        print("guardo el data")
 		# asynchrony calculation
         asyn_df = tp.Compute_Asyn(stim_time,resp_time)
 
@@ -212,7 +212,6 @@ for block in range(0,n_blocks):
         json.dump(converted_data, fp)
         
 print("Fin del experimento!")
-print("Felicitaciones! Estas dentro del 1% en habilidad musical")
 arduino.close()
 
 

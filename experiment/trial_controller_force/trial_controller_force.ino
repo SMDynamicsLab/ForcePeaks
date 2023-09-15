@@ -543,7 +543,7 @@ void save_data(char ename, unsigned int enumber, unsigned long etime){
 
 void setup() {
 
-  Serial.begin(115200); //USB communication with computer / 9600
+  Serial.begin(57600); //USB communication with computer / 9600 57600 115200
   pinMode(INPUTPIN,INPUT);
   
   cli();
@@ -712,7 +712,8 @@ else{               //ALLOW = TRUE, CORRE EL TRIAL ENVIADO EN EL MENSAJE DE PYTH
 
       free(event_name);
       free(event_number);
-      free(event_time); 
+      free(event_time);
+      free(voltajeSensor); 
     }
 
   }
