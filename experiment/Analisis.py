@@ -38,7 +38,10 @@ get_ipython().run_line_magic("matplotlib","qt5")
 
 path = '../data/'
 #dat_file =  path + 'SS00-2023_09_12-15.50.50-block0-trial0.dat'
+
+# Funcion para abrir los datos de un trial especifico de algun sujeto
 def datos(numero_de_sujeto, block, trial):
+    # Primero que recopile los datos
     register_subjs_path = path + 'registered_subjects.dat'
     with open(register_subjs_path,"r") as fp:
         subj_number_fullstring = fp.readlines()[numero_de_sujeto].replace("\n", "") # devuelve el S01 si #sujeto = 1
@@ -49,74 +52,104 @@ def datos(numero_de_sujeto, block, trial):
     
     with open(path + rawdata_fname,"r") as fp:
         data = fp.readlines()
-            
-    return data
 
+    # Ahora que separe los datos
+    e_total = len(data)
+    e_type = []
+    e_number = []
+    e_time = []
+    for event in data:
+        e_type.append(event.split()[0])
+        e_number.append(int(event.split()[1]))
+        e_time.append(int(event.split()[2]))
+
+    # separates number and time according to if it comes from stimulus or response
+    stim_number = []
+    resp_number = []
+    stim_time = []
+    resp_time = []
+    voltage_value = []
+    for events in range(e_total):
+        if e_type[events]=='S':
+            stim_number.append(e_number[events])
+            stim_time.append(e_time[events])
+
+        if e_type[events]=='R':
+            resp_number.append(e_number[events])
+            resp_time.append(e_time[events])
+                    
+        if e_type[events]=='V':
+            # resp_number.append(e_number[events])
+            voltage_value.append(e_time[events])
+    
+    return({'stim_number':stim_number, 'resp_number':resp_number,
+            'stim_time':stim_time, 'resp_time':resp_time,
+            'voltage_value':voltage_value })
+
+# Para poder vincular las respuestas con sus estimulos 
 def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return array[idx]
 
-#%%
-data = datos(1,1,5)
-# separates data in type, number, and time
-# todo esto desp lo metemos en una funcion y listo
-# por ahora lo dejamos asi pq queriamos ver q anda todo bien 
+def asincronia(data):
+    asincronias = []
+    respuestas = data["resp_time"]
+    estimulos = data["stim_time"]
+    for resp in respuestas:
+        nearest_stim = find_nearest(estimulos, resp)
+        asincronias.append(resp - nearest_stim)
+    return asincronias
 
-e_total = len(data)
-e_type = []
-e_number = []
-e_time = []
-for event in data:
-    e_type.append(event.split()[0])
-    e_number.append(int(event.split()[1]))
-    e_time.append(int(event.split()[2]))
-
-# separates number and time according to if it comes from stimulus or response
-stim_number = []
-resp_number = []
-stim_time = []
-resp_time = []
-voltage_value = []
-for events in range(e_total):
-    if e_type[events]=='S':
-        stim_number.append(e_number[events])
-        stim_time.append(e_time[events])
-
-    if e_type[events]=='R':
-        resp_number.append(e_number[events])
-        resp_time.append(e_time[events])
-                
-    if e_type[events]=='V':
-        # resp_number.append(e_number[events])
-        voltage_value.append(e_time[events])
-  
 #%%          
-x = np.linspace(0,len(voltage_value)-1,len(voltage_value))
+data = datos(1,1,5)
+voltajes = data["voltage_value"]
+x = np.linspace(0,len(voltajes)-1,len(voltajes))
 
 plt.figure(figsize = (10,6))
-plt.plot(x,voltage_value)
+plt.plot(x,voltajes)
 plt.show()
 
 #%%
+data = datos(1,1,5)
+print(asincronia(data))
 
-asincronias = []
-for resp in resp_time:
-    nearest_stim = find_nearest(stim_time, resp)
-    asincronias.append(resp - nearest_stim)
+#%%
 
-print(asincronias)
+register_subjs_path = path + 'registered_subjects.dat'
+with open(register_subjs_path,"r") as fp:
+    total_subjects = 1 + int( fp.readlines()[-1].replace("\n", "").replace("S", ""))
 
+datos_totales = []
+for s in range(total_subjects): # N° sujetos
+    datos_subject_s = []
+    for b in range(4): # N° bloques  
+        datos_block_b = []
+        for t in range(9): # N° trials
+                datos_sbt = datos(s,b,t) # numero_de_sujeto, block, trial
+                #datos_trial_t = {'subject':s,'block':b,'trial':t,'datos':datos_sbt}
+                datos_block_b.append(datos_sbt)
+        datos_subject_s.append(datos_block_b)        
+    datos_totales.append(datos_subject_s)
 
+#%%
 
+subject = 1
+block = 3
+trial = 5
+data_type = 'voltage_value'
 
+voltajes = datos_totales[subject][block][trial][data_type]
 
+data = datos(1,1,5)
+voltajes = data["voltage_value"]
+x = np.linspace(0,len(voltajes)-1,len(voltajes))
 
+plt.figure(figsize = (10,6))
+plt.plot(x,voltajes)
+plt.show()
 
-
-
-
-
+#%%
 
 
 
