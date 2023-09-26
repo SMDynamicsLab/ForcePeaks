@@ -23,7 +23,7 @@ get_ipython().run_line_magic("matplotlib","qt5")
 #%% parameters and files
 
 
-n_stims = 20 # number of bips in a sequence
+n_stims = 15# number of bips in a sequence
 
 effector_list_dict = {'D':'dedo', 'M':'mano'}
 period_list_dict = {'1':444, '2':666} # interstimulus intervals (ms)
@@ -52,7 +52,11 @@ def vars2dict(varnames): # e.g. varnames=['var1','var2']
 	vardict = {var: varvalues[var] for var in varnames}
 	return vardict
 
-
+class CustomEncoder(json.JSONEncoder):
+   def default(self, obj):
+       if isinstance(obj, pd.Series):
+           return obj.tolist()
+       return json.JSONEncoder.default(self, obj)
 
 #%% experiment
 
@@ -189,13 +193,19 @@ for block in range(0,n_blocks):
 
 		# save parsed trial data
 # 		trial_data_dict = dict_of(data,stim_time,resp_time,asyn_df)
-        trial_data_dict = vars2dict(['data','stim_time','resp_time','asyn_df'])
+        # trial_data_dict = vars2dict(['data','stim_time','resp_time','asyn_df','voltage_value'])
         
         # Tuve que agregar la siguiente linea para que funcione (C-GPT)
-        converted_data = {key: value.to_dict(orient='records') if isinstance(value, pd.DataFrame) else value for key, value in trial_data_dict.items()}
-        with open(parseddata_fname, "w") as fp:
-#            json.dumps(trial_data_dict, fp)  # Tira error pq dumps requiere 1 unico argumento
-            json.dump(converted_data, fp) 
+        # converted_data = {key: value.to_dict(orient='records') if isinstance(value, pd.DataFrame) else value for key, value in trial_data_dict.items()}
+			# SAVE DATA FROM TRIAL (VALID OR NOT).
+        f_data_dict = {'Data' : data, 'Stim_time' : stim_time, 'Resp_time' : resp_time, 'Asynchrony' : asyn_df['asyn'].tolist(), 'Stim_assigned_to_asyn' : asyn_df['assigned_stim'].tolist(), 'voltage_value' : voltage_value}   
+        f_data_str = json.dumps(f_data_dict)
+        f_data = open(parseddata_fname, "w")
+        f_data.write(f_data_str)
+        f_data.close()
+#         with open(parseddata_fname, "w") as fp:
+# #            json.dumps(trial_data_dict, fp)  # Tira error pq dumps requiere 1 unico argumento
+#             json.dump(converted_data, fp) 
             
 
 		# next trial
@@ -204,12 +214,24 @@ for block in range(0,n_blocks):
 	# next block
     print("Fin del bloque!\n")
     block = block + 1
+    
+	# SAVE DATA FROM BLOCK (VALID AND INVALID TRIALS, MESSAGES AND ERRORS).    
+ # 	block_data_dict = dict_of(block_conditions, messages)
 
-# 	block_data_dict = dict_of(block_conditions, messages)
     block_data_dict = vars2dict(['block_conditions','messages'])
-    with open(block_fname, "w") as fp:
-        #json.dumps(block_data_dict, fp) # Tira error pq dumps requiere 1 unico argumento
-        json.dump(converted_data, fp)
+   
+    # las siguientes lineas son para resolver el error:
+    # Object of type Series is not JSON serializable
+    data = pd.Series(block_data_dict)
+    json_data = json.dumps(data, cls=CustomEncoder)
+    # json_data = json.dumps(data_dict)
+    # b_data_str = json.dumps(block_data_dict)
+    
+    b_data_str = json.dumps(json_data)
+    b_data = open(block_fname, "w")
+    b_data.write(b_data_str) # 
+    b_data.close()
+
         
 print("Fin del experimento!")
 arduino.close()

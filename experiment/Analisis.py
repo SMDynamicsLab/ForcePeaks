@@ -31,14 +31,20 @@ import statistics as stat
 import more_itertools as mt
 import seaborn as sns
 import os
+import pandas as pd 
+from scipy.signal import find_peaks
+
 from IPython import get_ipython
 get_ipython().run_line_magic("matplotlib","qt5")
 
+
+
+
 #%%
-
 path = '../data/'
-#dat_file =  path + 'SS00-2023_09_12-15.50.50-block0-trial0.dat'
 
+import glob
+import json
 # Funcion para abrir los datos de un trial especifico de algun sujeto
 def datos(numero_de_sujeto, block, trial):
     # Primero que recopile los datos
@@ -47,62 +53,25 @@ def datos(numero_de_sujeto, block, trial):
         subj_number_fullstring = fp.readlines()[numero_de_sujeto].replace("\n", "") # devuelve el S01 si #sujeto = 1
 
     for filename in os.listdir(path):
-        if filename.startswith('S' + subj_number_fullstring) and filename.endswith("block" + str(block) + "-" + "trial" + str(trial) + "-raw.dat"):
-            rawdata_fname = filename
-    
-    with open(path + rawdata_fname,"r") as fp:
-        data = fp.readlines()
+        if filename.startswith('S' + subj_number_fullstring) and filename.endswith("block" + str(block) + "-" + "trial" + str(trial) + ".dat"):
+            data_fname = filename
+    print(data_fname)
+    file_to_load = glob.glob(data_fname)[0]
+    f_to_load = open(file_to_load,"r")
+    content = f_to_load.read()
+    f_to_load.close()
+    content = json.loads(content)
+    return content
 
-    # Ahora que separe los datos
-    e_total = len(data)
-    e_type = []
-    e_number = []
-    e_time = []
-    for event in data:
-        e_type.append(event.split()[0])
-        e_number.append(int(event.split()[1]))
-        e_time.append(int(event.split()[2]))
+#%%
 
-    # separates number and time according to if it comes from stimulus or response
-    stim_number = []
-    resp_number = []
-    stim_time = []
-    resp_time = []
-    voltage_value = []
-    for events in range(e_total):
-        if e_type[events]=='S':
-            stim_number.append(e_number[events])
-            stim_time.append(e_time[events])
+data1 = datos(2,0,5)['Asynchrony']
+data2 = datos(2,0,5)['Stim_assigned_to_asyn']
+data3 = datos(2,0,5)['Resp_time']
+data4 = datos(2,0,5)['voltage_value']
+data5 = datos(2,0,5)['Data']
 
-        if e_type[events]=='R':
-            resp_number.append(e_number[events])
-            resp_time.append(e_time[events])
-                    
-        if e_type[events]=='V':
-            # resp_number.append(e_number[events])
-            voltage_value.append(e_time[events])
-    
-    return({'stim_number':stim_number, 'resp_number':resp_number,
-            'stim_time':stim_time, 'resp_time':resp_time,
-            'voltage_value':voltage_value })
-
-# Para poder vincular las respuestas con sus estimulos 
-def find_nearest(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return array[idx]
-
-def asincronia(data):
-    asincronias = []
-    respuestas = data["resp_time"]
-    estimulos = data["stim_time"]
-    for resp in respuestas:
-        nearest_stim = find_nearest(estimulos, resp)
-        asincronias.append(resp - nearest_stim)
-    return asincronias
-
-#%%          
-data = datos(1,1,5)
+data = datos(2,0,5)
 voltajes = data["voltage_value"]
 x = np.linspace(0,len(voltajes)-1,len(voltajes))
 
@@ -111,10 +80,7 @@ plt.plot(x,voltajes)
 plt.show()
 
 #%%
-data = datos(1,1,5)
-print(asincronia(data))
 
-#%%
 
 register_subjs_path = path + 'registered_subjects.dat'
 with open(register_subjs_path,"r") as fp:
@@ -132,9 +98,10 @@ for s in range(total_subjects): # N° sujetos
         datos_subject_s.append(datos_block_b)        
     datos_totales.append(datos_subject_s)
 
+
 #%%
 
-subject = 1
+subject = 0
 block = 3
 trial = 5
 data_type = 'voltage_value'
@@ -149,14 +116,75 @@ plt.figure(figsize = (10,6))
 plt.plot(x,voltajes)
 plt.show()
 
-#%%
+#%% 
+
+
+
+data1 = datos(2,0,5)['Asynchrony']
+data2 = datos(2,0,5)['Stim_assigned_to_asyn']
+data3 = datos(2,0,5)['Resp_time']
+data4 = datos(2,0,5)['voltage_value']
+data5 = datos(2,0,5)['Data']
+
+#%%%
+
+
+data = datos(2,0,5)
+voltajes = data["voltage_value"]
+x = np.linspace(0,len(voltajes)-1,len(voltajes))
+
+peaks,_ = find_peaks(voltajes, distance=15)
+def filtro_peaks(voltajes,peaks):
+    filter_peaks = []
+    for p in peaks:
+        if voltajes[p] > 10 and voltajes[p] < 600:
+            filter_peaks.append(p)
+    return filter_peaks
+    
+plt.close("all")
+plt.figure(figsize = (10,6))
+plt.plot(voltajes)
+f_peaks = filtro_peaks(voltajes,peaks)
+for p in f_peaks:
+    plt.plot(p,voltajes[int(p)],"o",markersize = 5, c = "darkred", alpha = 0.5)
+plt.show()
 
 
 
 
 
 
+#%% Cond_trial
 
+path = 'presentation_orders_prueba.csv'
+
+def cond_of_trial(subject,block,trial,trials_per_block):
+    with open(path, 'r') as file:
+        f = file.readlines()
+    cond =  list(f[1+ trial+block*trials_per_block].split(","))[subject + 2]
+    return cond
+
+    
+#%% Data Frame
+register_subjs_path = path + 'registered_subjects.dat'
+subjects = []
+with open(register_subjs_path,"r") as fp:
+    for i in fp.readlines():
+        subjects.append(int(i.replace("\n", "").replace("S", "")))
+        
+
+df = {'Subjs':[], 'Block':[], 'Trial':[], 'Cond':[],'Asign_Stim':[],'Asign_Resp':[],'Asyns_p1':[],,'Asyns_p2':[]}
+trials_per_block = 13
+# La idea es que cada fila es un bip
+for s in range(len(subjects)):
+    for b in range(4): # number_of_blocks
+        for t in range(13): # number of trials_per_block
+            
+            for a in 
+                cond = cond_of_trial(s, b, t, trials_per_block)
+                df.loc[len(df.index)] = [s, b, t, cond,] 
+# Print data.  
+print(dframe)
 
 
 
