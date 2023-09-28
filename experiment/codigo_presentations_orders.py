@@ -75,8 +75,7 @@ def block_generator(trials_per_block,start,DoM): # ej. trials_per_block = 17, st
 #%% presentation_orders_generator
 
 
-block_types =[['D','D','M','M'],['D','M','M','D'],
-         ['M','M','D','D'],['M','D','D','M']]
+block_types =[['D','D','M','M']]
 
 def presentations_order_generator(path,tot_subjects,blocks_types,trials_per_block):
     blocks_type_num = len(blocks_types) 
@@ -119,9 +118,9 @@ path = 'presentation_orders_prueba.csv'
 
 tot_subject = 48
 
-block_types =[['D','M','M','D'],['M','D','D','M']]
+block_types =[['D']]
 
-trial_per_block = 13 # 9, 13, 17 = m(n**2)+1  con n = 2 (periodos)
+trial_per_block = 3 # 9, 13, 17 = m(n**2)+1  con n = 2 (periodos)
 
 
 presentations_order_generator(path, tot_subject, block_types, trial_per_block)

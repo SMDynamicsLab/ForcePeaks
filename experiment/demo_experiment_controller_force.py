@@ -23,21 +23,21 @@ get_ipython().run_line_magic("matplotlib","qt5")
 #%% parameters and files
 
 
-n_stims = 25 # number of bips in a sequence
+n_stims = 30 # number of bips in a sequence
 
 effector_list_dict = {'D':'dedo', 'M':'mano'}
 period_list_dict = {'1':444, '2':666} # interstimulus intervals (ms)
 
-n_trials_perblock = 13 # (multiple of number of pairs of periods) + 1
-n_blocks = 4 # either DMMD or MDDM
+n_trials_perblock = 2 # (multiple of number of pairs of periods) + 1
+n_blocks = 1 # either DMMD or MDDM
 
 sensorThreshold  = 50
 noise_amp = 120
 
 path = '../data/'
-recorded_subject_pseudos_fname = path + 'pseudonyms.dat'
-recorded_subject_numbers_fname = path + 'registered_subjects.dat'
-presentation_orders_fname = path + 'presentation_orders.csv'
+recorded_subject_pseudos_fname = path + 'demo_pseudonyms.dat'
+recorded_subject_numbers_fname = path + 'demo_registered_subjects.dat'
+presentation_orders_fname = path + 'demo_presentation_orders.csv'
 
 # get effector and period from condition string, e.g. 'D1'
 def get_effectors(condition):
@@ -104,7 +104,7 @@ for block in range(0,n_blocks):
 
 	# get timestamp for block file names
     timestr = time.strftime("%Y_%m_%d-%H.%M.%S")
-    block_fname = path + 'S' + subj_number_fullstring + "-" + timestr + "-" + "block" + str(block) + "-alltrials.csv"
+    block_fname = path + 'demo_S' + subj_number_fullstring + "-" + timestr + "-" + "block" + str(block) + "-alltrials.csv"
 
     block_conditions = conditions_order.query('Block==@block')[subj_number_fullstring]
     block_effectors = get_effectors(block_conditions)
@@ -123,9 +123,9 @@ for block in range(0,n_blocks):
  		#ISI =block_periods[trial]
         ISI =period_list_dict[period]
 		# raw data filename for arduino data
-        rawdata_fname = path + 'S' + subj_number_fullstring + "-" + timestr + "-" + "block" + str(block) + "-" + "trial" + str(trial) + "-raw.dat"
+        rawdata_fname = path + 'demo_S' + subj_number_fullstring + "-" + timestr + "-" + "block" + str(block) + "-" + "trial" + str(trial) + "-raw.dat"
 		# parsed data filename (stimulus times, response times, asynchrony, force)
-        parseddata_fname = path + 'S' + subj_number_fullstring + "-" + timestr + "-" + "block" + str(block) + "-" + "trial" + str(trial) + ".dat"
+        parseddata_fname = path + 'demo_S' + subj_number_fullstring + "-" + timestr + "-" + "block" + str(block) + "-" + "trial" + str(trial) + ".dat"
 
 		# wait random time before actually starting the trial
         wait = random.random() + 1
@@ -136,7 +136,7 @@ for block in range(0,n_blocks):
         arduino.write(message)
         messages.append(message.decode())
 		# (trial under arduino control)
-        # print("mensaje enviado")
+
 		# read information from arduino
         data = []
         aux = arduino.readline().decode()
@@ -144,7 +144,7 @@ for block in range(0,n_blocks):
             data.append(aux)
             aux = arduino.readline().decode()
             
-        # print("leyo el data")
+
         # # read information from arduino Force (Voltajes)
         # data = []
         # aux = arduino.readline().decode()
@@ -232,23 +232,16 @@ for block in range(0,n_blocks):
     b_data.write(b_data_str) # 
     b_data.close()
 
+            
         
 print("Fin del experimento!")
 arduino.close()
 
-
-#%%
-
-
-x = np.linspace(0,len(voltage_value)-1,len(voltage_value))
-
-plt.figure()
-plt.plot(x,voltage_value)
-plt.show()
-
-
-
-
+for filename in os.listdir('../data/'): # en el () va el path
+    if filename.startswith('demo_S'):
+        data_fname = filename
+        print(data_fname)
+        os.remove('../data/' + data_fname)
 
 
 

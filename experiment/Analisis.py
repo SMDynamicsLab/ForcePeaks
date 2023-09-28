@@ -41,18 +41,18 @@ get_ipython().run_line_magic("matplotlib","qt5")
 
 
 #%%
-path = '../data/'
+#path = '../data/'
 
 import glob
 import json
 # Funcion para abrir los datos de un trial especifico de algun sujeto
 def datos(numero_de_sujeto, block, trial):
     # Primero que recopile los datos
-    register_subjs_path = path + 'registered_subjects.dat'
+    register_subjs_path = 'registered_subjects.dat'
     with open(register_subjs_path,"r") as fp:
         subj_number_fullstring = fp.readlines()[numero_de_sujeto].replace("\n", "") # devuelve el S01 si #sujeto = 1
 
-    for filename in os.listdir(path):
+    for filename in os.listdir(): # en el () va el path
         if filename.startswith('S' + subj_number_fullstring) and filename.endswith("block" + str(block) + "-" + "trial" + str(trial) + ".dat"):
             data_fname = filename
     print(data_fname)
@@ -65,13 +65,13 @@ def datos(numero_de_sujeto, block, trial):
 
 #%%
 
-data1 = datos(2,0,5)['Asynchrony']
-data2 = datos(2,0,5)['Stim_assigned_to_asyn']
-data3 = datos(2,0,5)['Resp_time']
-data4 = datos(2,0,5)['voltage_value']
-data5 = datos(2,0,5)['Data']
+# data1 = datos(2,0,5)['Asynchrony']
+# data2 = datos(2,0,5)['Stim_assigned_to_asyn']
+# data3 = datos(2,0,5)['Resp_time']
+# data4 = datos(2,0,5)['voltage_value']
+# data5 = datos(2,0,5)['Data']
 
-data = datos(2,0,5)
+data = datos(0,0,5)
 voltajes = data["voltage_value"]
 x = np.linspace(0,len(voltajes)-1,len(voltajes))
 
@@ -82,7 +82,7 @@ plt.show()
 #%%
 
 
-register_subjs_path = path + 'registered_subjects.dat'
+register_subjs_path = 'registered_subjects.dat'
 with open(register_subjs_path,"r") as fp:
     total_subjects = 1 + int( fp.readlines()[-1].replace("\n", "").replace("S", ""))
 
@@ -99,7 +99,7 @@ for s in range(total_subjects): # N° sujetos
     datos_totales.append(datos_subject_s)
 
 
-#%%
+#%% tipos de datos en datos()
 
 subject = 0
 block = 3
@@ -116,49 +116,55 @@ plt.figure(figsize = (10,6))
 plt.plot(x,voltajes)
 plt.show()
 
-#%% 
-
-
-
 data1 = datos(2,0,5)['Asynchrony']
 data2 = datos(2,0,5)['Stim_assigned_to_asyn']
 data3 = datos(2,0,5)['Resp_time']
 data4 = datos(2,0,5)['voltage_value']
 data5 = datos(2,0,5)['Data']
 
-#%%%
+#%% bip_separator
 
+def bip_separator(voltajes):
+    bips = []
+    start_i = 10000
+    for v in range(len(voltajes)-1):
+       
+        if voltajes[v] == 0 and voltajes[v+1] > 0:
+            start_i = v
+            print(start_i)
+        if v > start_i and voltajes[v] > 0 and voltajes[v+1] == 0:
+            end_i = v
+            bip = np.asarray(voltajes[start_i+1:end_i+3])
+            print("start_i =" +str(start_i))
+            print("end_i =" +str(end_i))
+            if len(bip)>10:    
+                bips.append(bip)
+    peaks = []
+    for b in bips:
+        pk, _ = find_peaks(b, distance=5,height=10)
+        peaks.append(pk)
+    return bips, np.asarray(peaks)
 
-data = datos(2,0,5)
-voltajes = data["voltage_value"]
-x = np.linspace(0,len(voltajes)-1,len(voltajes))
+#%%% Para graficar los bips
+data = datos(0,2,7)
+bips, peaks = bip_separator(data["voltage_value"])
+bip = 7
+# peaks,_ = find_peaks(bips[bip], distance=5,height=10)
 
-peaks,_ = find_peaks(voltajes, distance=15)
-def filtro_peaks(voltajes,peaks):
-    filter_peaks = []
-    for p in peaks:
-        if voltajes[p] > 10 and voltajes[p] < 600:
-            filter_peaks.append(p)
-    return filter_peaks
-    
 plt.close("all")
 plt.figure(figsize = (10,6))
-plt.plot(voltajes)
-f_peaks = filtro_peaks(voltajes,peaks)
-for p in f_peaks:
-    plt.plot(p,voltajes[int(p)],"o",markersize = 5, c = "darkred", alpha = 0.5)
+plt.plot(bips[bip], ".-")
+for p in peaks[bip]:
+    plt.plot(p,bips[bip][int(p)],"o",markersize = 10, c = "darkred", alpha = 0.5)
 plt.show()
-
-
-
-
 
 
 #%% Cond_trial
 
-path = 'presentation_orders_prueba.csv'
+# path = 'presentation_orders_prueba.csv'
 
 def cond_of_trial(subject,block,trial,trials_per_block):
+    path_po = 'presentation_orders_prueba.csv'
     with open(path, 'r') as file:
         f = file.readlines()
     cond =  list(f[1+ trial+block*trials_per_block].split(","))[subject + 2]
@@ -166,23 +172,39 @@ def cond_of_trial(subject,block,trial,trials_per_block):
 
     
 #%% Data Frame
-register_subjs_path = path + 'registered_subjects.dat'
+
+register_subjs_path = 'registered_subjects.dat'
 subjects = []
 with open(register_subjs_path,"r") as fp:
     for i in fp.readlines():
         subjects.append(int(i.replace("\n", "").replace("S", "")))
         
 
-df = {'Subjs':[], 'Block':[], 'Trial':[], 'Cond':[],'Asign_Stim':[],'Asign_Resp':[],'Asyns_p1':[],,'Asyns_p2':[]}
+df = {'Subjs':[], 'Block':[], 'Trial':[], 'Cond':[],'Asign_Stim':[],'Asign_Resp':[],'Asyns_p1':[],'Asyns_p2':[]}
 trials_per_block = 13
 # La idea es que cada fila es un bip
 for s in range(len(subjects)):
-    for b in range(4): # number_of_blocks
+    for block in range(4): # number_of_blocks
         for t in range(13): # number of trials_per_block
+            datos_trial = datos(s,block,t)
+            resp_time   = datos_trial['Resp_time']
+            stim_time   = datos_trial['Stim_time']
+            asyns       = datos_trial["Asynchronys"]
+            voltajes    = datos_trial["voltage_value"]
+            asign_stim  = datos_trial['Stim_assigned_to_asyn']
             
-            for a in 
-                cond = cond_of_trial(s, b, t, trials_per_block)
-                df.loc[len(df.index)] = [s, b, t, cond,] 
+            taps, peaks = bip_separator(voltajes)
+            cond = cond_of_trial(s, block, t, trials_per_block)
+            for tap in range(len(taps)):                
+                if len(peaks)>1:              
+                    indice = # indice del primer elemento mayo o igual a 5
+                    asign_stim_tap = asign_stim[tap+indice]
+                    p1_tap = peaks[tap][0] # 
+                    p2_tap = peaks[tap][1] # esta es la asincronia de p2 con la respuesta
+                    asyns_p2 = resp_time[tap+indice] + p2_tap[tap] - stim_time[asing_stim_tap]
+                
+                
+                df.loc[len(df.index)] = [s, block, t, cond,b, ] 
 # Print data.  
 print(dframe)
 
