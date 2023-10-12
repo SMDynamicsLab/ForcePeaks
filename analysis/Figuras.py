@@ -6,6 +6,7 @@ Created on Tue Oct 10 10:42:14 2023
 """
 import pandas as pd 
 from plotnine import *
+import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
 from IPython import get_ipython
 get_ipython().run_line_magic("matplotlib","qt5")
@@ -17,10 +18,6 @@ df = pd.read_csv("Df_prueba.csv")
 df_voltage = pd.read_csv("Df_Voltage_prueba.csv")
 
 df_voltage_2 = df_voltage.copy(deep=True)
-# df_voltage_2['Subjs'] = df_voltage_2.Subjs.astype('category')
-# df_voltage_2['Block'] = df_voltage_2.Subjs.astype('category')
-# df_voltage_2['Trial'] = df_voltage_2.Subjs.astype('category')
-# df_voltage_2['Tap'] = df_voltage_2.Subjs.astype('category')
 df_voltage_2['Subjs'] = df_voltage_2.Subjs.astype('string')
 df_voltage_2['Block'] = df_voltage_2.Block.astype('string')
 df_voltage_2['Trial'] = df_voltage_2.Trial.astype('string')
@@ -29,6 +26,11 @@ df_voltage_2 = (df_voltage_2
 				   # create label for plot grouping
 				   .assign(label = lambda df: df.Subjs + df.Block + df.Trial + df.Tap)
 				   )
+
+df['Subjs'] = df.Subjs.astype('string')
+df['Cond'] = df.Cond.astype('string')
+df['Trial'] = df.Trial.astype('string')
+df['Tap'] = df.Tap.astype('string')
 
 
 #%%
@@ -74,28 +76,30 @@ df_voltage_8 = (df_voltage_6                                   #ESTE ES LA "BOLS
 
 
 
+
 #%% GRAFICA UN TAP DE UN TRIAL DE UNA COND DE UN SUJETO
+tap_lenght=50
 
 plt.figure()
-plt.plot(df_voltage_2['Time'][:78],df_voltage_2['Voltages'][:78])
+plt.plot(df_voltage_2['Time'][:tap_lenght],df_voltage_2['Voltages'][:tap_lenght])
 
-#%% GRAFICA EL TAP PROMEDIO DE UN TRIAL PARA UN SUJETO
+#%%% GRAFICA EL TAP PROMEDIO DE UN TRIAL PARA UN SUJETO
 
 plt.close("all")
 plt.figure()
-plt.plot(df_voltage_3['Time'][:78],df_voltage_3['mean_voltage'][:78])
+plt.plot(df_voltage_3['Time'][:tap_lenght],df_voltage_3['mean_voltage'][:tap_lenght])
 
-#%% GRAFICA EL TAP PROMEDIO DE UNA CONDICION PARA UN SUJETO
-
-plt.close("all")
-plt.figure()
-plt.plot(df_voltage_4['Time'][:78],df_voltage_4['mean_voltage'][:78])
-
-#%%GRAFICA EL TAP PROMEDIO DE TODOS LOS SUJETOS PARA UNA CONDICION
+#%%% GRAFICA EL TAP PROMEDIO DE UNA CONDICION PARA UN SUJETO
 
 plt.close("all")
 plt.figure()
-plt.plot(df_voltage_5['Time'][:78],df_voltage_5['mean_voltage'][:78])
+plt.plot(df_voltage_4['Time'][:tap_lenght],df_voltage_4['mean_voltage'][:tap_lenght])
+
+#%%% GRAFICA EL TAP PROMEDIO DE TODOS LOS SUJETOS PARA UNA CONDICION
+
+plt.close("all")
+plt.figure()
+plt.plot(df_voltage_5['Time'][:tap_lenght],df_voltage_5['mean_voltage'][:tap_lenght])
 
 #%% GRAFICA TODO
 
@@ -119,7 +123,7 @@ plot_taps = (
 					   color = 'Trial',
 					   linetype = 'Cond'))
 #					   shape = 'perturb_type'))
- 		 + geom_path()
+ 		 + geom_line()
 		 + geom_point()
 # 		 + geom_errorbar(aes(x = 'beep',
 # 						   ymin = "diff-ci_diff",
@@ -199,7 +203,7 @@ print(plot_taps_ave_cond)
 
 
 
-#%%
+#%%%
 
 fig_xsize = 20
 fig_ysize = 10
@@ -225,7 +229,7 @@ plot_taps_ave_cond = (
 
 print(plot_taps_ave_cond)
 
-#%%
+#%%%
 
 fig_xsize = 20
 fig_ysize = 10
@@ -251,7 +255,7 @@ plot_taps_ave_cond = (
 
 print(plot_taps_ave_cond)
 
-#%%
+#%%%
 
 fig_xsize = 20
 fig_ysize = 10
@@ -277,7 +281,7 @@ plot_taps_ave_cond = (
 
 print(plot_taps_ave_cond)
 
-#%%
+#%%%
 
 fig_xsize = 20
 fig_ysize = 10
@@ -303,6 +307,74 @@ plot_taps_ave_cond = (
 
 print(plot_taps_ave_cond)
 
+#%% GRAFICA ASYNS VS TIEMPO ENTRE PICOS
+
+
+fig_xsize = 20
+fig_ysize = 10
+
+plot_taps_ave_cond = (
+ 		 ggplot(df,
+				   aes(x = 'Asyns_p2-Asyns_p1', y = 'Asyns_p1',
+					   group = 'Cond',
+					   color = 'Cond',
+ 					   # linetype = ''))
+					   shape = 'Subjs'))
+ 		 # + geom_path()
+		 + geom_point()
+         + facet_grid('Subjs ~ Cond')
+#  		 + geom_errorbar(aes(x = 'Time',
+#  						   ymin = "mean_voltage-ci_voltage",
+#  						   ymax = "mean_voltage+ci_voltage"),
+# 					   width = error_width)
+#   		 + scale_x_continuous(limits=x_lims,breaks=range(x_lims[0],x_lims[1]+1,1))
+ 		 + theme_bw()
+ 		 + theme(legend_key = element_rect(fill = "white", color = 'white'),
+				figure_size = (fig_xsize, fig_ysize))
+		 )
+
+print(plot_taps_ave_cond)
+
 #%%
 
-df_voltage_01= df_voltage.copy(deep=True)
+df_2 = df.copy(deep=True)
+df_2[['Effector', 'Period']] = df_2['Cond'].str.extract('(\w+)(\w+)', expand=True)
+
+fig_xsize = 20
+fig_ysize = 10
+
+plot_taps_ave_cond = (
+ 		 ggplot(df_2,
+				   aes(x = 'Asyns_p2-Asyns_p1', y = 'Asyns_p1',
+# 					   group = 'Cond',
+					   color = 'Effector',
+ 					   # linetype = ''))
+					   shape = 'Subjs'))
+ 		 # + geom_path()
+		 + geom_point()
+         + facet_grid('Subjs ~ Period')
+         +geom_smooth(method="lm",colour='Black')
+#  		 + geom_errorbar(aes(x = 'Time',
+#  						   ymin = "mean_voltage-ci_voltage",
+#  						   ymax = "mean_voltage+ci_voltage"),
+# 					   width = error_width)
+#   		 + scale_x_continuous(limits=x_lims,breaks=range(x_lims[0],x_lims[1]+1,1))
+ 		 + theme_bw()
+ 		 + theme(legend_key = element_rect(fill = "white", color = 'white'),
+				figure_size = (fig_xsize, fig_ysize))
+		 )
+
+print(plot_taps_ave_cond)
+
+#%% Ajuste lineal
+
+# loading the csv file
+
+
+ 
+# fitting the model
+# df.columns = ['Head_size', 'Brain_weight']
+model = smf.ols(formula= 'Asyns_c ~ Peak_interval + Period', data=df).fit()
+ 
+# model summary
+print(model.summary())
