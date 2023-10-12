@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+#%% Importo Librerias
 """
 @author: Tucu y Pachu
 
@@ -27,25 +28,19 @@ derived from this software without specific prior written permission.
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import statistics as stat
-import more_itertools as mt
-import seaborn as sns
 import os
 import pandas as pd 
 from scipy.signal import find_peaks
 import math
- 
+import glob
+import json
 from IPython import get_ipython
 get_ipython().run_line_magic("matplotlib","qt5")
 
 
-
-
-#%%
+#%% datos(sujeto,block,trial) = data de ese trial
 #path = '../data/'
 
-import glob
-import json
 # Funcion para abrir los datos de un trial especifico de algun sujeto
 def datos(numero_de_sujeto, block, trial):
     # Primero que recopile los datos
@@ -56,7 +51,7 @@ def datos(numero_de_sujeto, block, trial):
     for filename in os.listdir(): # en el () va el path
         if filename.startswith('S' + subj_number_fullstring) and filename.endswith("block" + str(block) + "-" + "trial" + str(trial) + ".dat"):
             data_fname = filename
-    print(data_fname)
+    # print(data_fname)
     file_to_load = glob.glob(data_fname)[0]
     f_to_load = open(file_to_load,"r")
     content = f_to_load.read()
@@ -64,69 +59,29 @@ def datos(numero_de_sujeto, block, trial):
     content = json.loads(content)
     return content
 
-#%%
+#%%% Ej. grafico de un trial
 
-data1 = datos(0,3,1)['Asynchrony']
-data2 = datos(0,3,1)['Stim_assigned_to_asyn']
-data3 = datos(0,3,1)['Resp_time']
-data4 = datos(0,3,1)['voltage_value']
-data5 = datos(0,3,1)['Data']
-
-data = datos(0,3,1)
-voltajes = data["voltage_value"]
-x = np.linspace(0,len(voltajes)-1,len(voltajes))
-
-plt.figure(figsize = (10,6))
-plt.plot(x,voltajes)
-plt.show()
-
-#%%
-
-
-register_subjs_path = 'registered_subjects.dat'
-with open(register_subjs_path,"r") as fp:
-    total_subjects = 1 + int( fp.readlines()[-1].replace("\n", "").replace("S", ""))
-
-datos_totales = []
-for s in range(total_subjects): # N° sujetos
-    datos_subject_s = []
-    for b in range(4): # N° bloques  
-        datos_block_b = []
-        for t in range(9): # N° trials
-                datos_sbt = datos(s,b,t) # numero_de_sujeto, block, trial
-                #datos_trial_t = {'subject':s,'block':b,'trial':t,'datos':datos_sbt}
-                datos_block_b.append(datos_sbt)
-        datos_subject_s.append(datos_block_b)        
-    datos_totales.append(datos_subject_s)
-
-
-#%% tipos de datos en datos()
-
-subject = 0
-block = 3
-trial = 5
-data_type = 'voltage_value'
-
-# voltajes = datos_totales[subject][block][trial][data_type]
+sujeto, bloque, trial = 1, 3, 1
+data1 = datos(sujeto, bloque, trial)['Asynchrony']
+data2 = datos(sujeto, bloque, trial)['Stim_assigned_to_asyn']
+data3 = datos(sujeto, bloque, trial)['Resp_time']
+data4 = datos(sujeto, bloque, trial)['voltage_value']
+data5 = datos(sujeto, bloque, trial)['Data']
 
 data = datos(0,3,1)
 voltajes = data["voltage_value"]
 x = np.linspace(0,len(voltajes)-1,len(voltajes))
 
-plt.figure(figsize = (10,6))
+plt.close("all")
+plt.figure(figsize = (20,6))
 plt.plot(x,voltajes)
+plt.tight_layout()
 plt.show()
 
-# data1 = datos(2,0,5)['Asynchrony']
-# data2 = datos(2,0,5)['Stim_assigned_to_asyn']
-# data3 = datos(2,0,5)['Resp_time']
-# data4 = datos(2,0,5)['voltage_value']
-# data5 = datos(2,0,5)['Data']
+#%% tap_separator(voltajes) = taps, peaks
 
-#%% bip_separator
-
-def bip_separator(voltajes):
-    bips = []
+def tap_separator(voltajes):
+    taps = []
     start_i = 10000
     for v in range(len(voltajes)-10):
        
@@ -139,41 +94,43 @@ def bip_separator(voltajes):
             # print("start_i =" +str(start_i))
             # print("end_i =" +str(end_i))
             if len(bip)>20:    
-                bip_posta =  np.asarray(voltajes[start_i+1:start_i+40])
-                bips.append(bip_posta)
+                bip_posta =  np.asarray(voltajes[start_i+1:start_i+80])
+                taps.append(bip_posta)
+                
     peaks = []
-    # hola = 0
-    for b in bips:
-        
+    for b in taps:
         pk, _ = find_peaks(b, distance=5,height=10)
         if len(pk)==1:
             pk = np.concatenate((pk,[np.nan]))
         if len(pk)==0:
             pk = [np.nan,np.nan]
         peaks.append(pk[:2])
-        # print(hola)
-        # hola += 1
-    return bips, peaks
+        
+    return taps, peaks
 
-#%%% Para graficar los bips
-data = datos(0,3,1)
-bips, peaks = bip_separator(data["voltage_value"])
+#%%% Para graficar los taps de un trial
+sujeto, bloque, trial = 0, 3, 1
+data = datos(sujeto, bloque, trial)
+taps, peaks = tap_separator(data["voltage_value"])
 
 plt.close("all")
 plt.figure(figsize = (10,6))
+colors = plt.cm.tab20(np.linspace(0,1,19))
+all_peaks = []
 for i in range(19):   
-    bip = i
-# peaks,_ = find_peaks(bips[bip], distance=5,height=10)
-
-    plt.plot(bips[bip], ".-")
-    # for p in peaks[bip]:
-        # plt.plot(p,bips[bip][int(p)],"o",markersize = 10, c = "darkred", alpha = 0.5)
+    tap = i
+    peaks,_ = find_peaks(taps[tap], distance = 10,height=10)
+    all_peaks.append(peaks)
+    plt.plot(taps[tap], ".-", color=colors[i], alpha = 0.5)
+    
+    for p in peaks:
+        if not math.isnan(p): 
+            plt.plot(p,taps[tap][int(p)],"o",markersize = 10, color=colors[i])
+plt.tight_layout()
 plt.show()
 
 
-#%% Cond_trial
-
-# path = 'presentation_orders_prueba.csv'
+#%% cond_of_trial()
 
 def cond_of_trial(subject,block,trial,trials_per_block):
     path_po = 'presentation_orders.csv'
@@ -183,7 +140,7 @@ def cond_of_trial(subject,block,trial,trials_per_block):
     return cond
 
     
-#%% Data Frame
+#%% Data Frame de Tiempos y Voltajes
 
 register_subjs_path = 'registered_subjects.dat'
 subjects = []
@@ -192,11 +149,14 @@ with open(register_subjs_path,"r") as fp:
         subjects.append(int(i.replace("\n", "").replace("S", "")))
         
 ppf = 6 # el primer pico de fuerza que medimos (tiramos los primeros 5)
-df = pd.DataFrame({'Subjs':[], 'Block':[], 'Trial':[], 'Cond':[],'Asyns_c':[],'Asyns_p1':[],'Asyns_p2':[]}) # 'Asign_Resp':[]
 trials_per_block = 13
+
+df = pd.DataFrame({'Subjs':[], 'Block':[], 'Trial':[], 'Cond':[], 'tap':[], 'p1':[], 'p2':[], 'Asyns_c':[],'Asyns_p1':[],'Asyns_p2':[]}) # 'Asign_Resp':[]
+df_voltage = pd.DataFrame({'Subjs':[], 'Block':[], 'Trial':[], 'Cond':[], 'Tap':[], 'Time':[], 'Voltages':[]})
+
 # La idea es que cada fila es un bip
 for s in range(len(subjects)):
-    for block in range(4): # number_of_blocks
+    for block in tqdm(range(4)): # number_of_blocks
         for t in range(13): # number of trials_per_block
             datos_trial = datos(s,block,t)
             resp_time   = datos_trial['Resp_time']
@@ -205,14 +165,14 @@ for s in range(len(subjects)):
             voltajes    = datos_trial["voltage_value"]
             assign_stim = datos_trial['Stim_assigned_to_asyn']
             
-            taps, peaks = bip_separator(np.asarray(voltajes))
+            taps, peaks = tap_separator(np.asarray(voltajes))
             taps=np.asarray(taps)
             peaks=np.asarray(peaks)
             # print(np.shape(peaks))
             # print(np.shape(taps))
             cond = cond_of_trial(s, block, t, trials_per_block)
             
-            indice =  int(np.argwhere(np.array(assign_stim)>=ppf-1)[0]) # indice del primer elemento mayo o igual a 5
+            indice =  int(np.argwhere(np.array(assign_stim)>=ppf-1)[0][0]) # indice del primer elemento mayo o igual a 5
             asyns_over6 = asyns[indice:]
             resp_time_taps = resp_time[len(resp_time)-len(taps):]
             asyns_taps = asyns[len(asyns)-len(taps):]
@@ -220,26 +180,25 @@ for s in range(len(subjects)):
                 # asign_stim_tap = assign_stim[tap+indice]
                 if not math.isnan(asyns_taps[tap]):              
                     if not math.isnan(peaks[tap][1]):
-                            c_asyn = asyns_taps[tap] 
-                            p1_tap = peaks[tap][0] # 
-                            p2_tap = peaks[tap][1] # esta es la asincronia de p2 con la respuesta
-                            # asyns_p2 = resp_time[tap+indice] + p2_tap[tap] - stim_time[asing_stim_tap]
-                            asyns_p1 = c_asyn + p1_tap
-                            asyns_p2 = c_asyn + p2_tap
+                        c_asyn = asyns_taps[tap] 
+                        p1_tap = peaks[tap][0] # 
+                        p2_tap = peaks[tap][1] # esta es la asincronia de p2 con la respuesta
+                        # asyns_p2 = resp_time[tap+indice] + p2_tap[tap] - stim_time[asing_stim_tap]
+                        asyns_p1 = c_asyn + p1_tap
+                        asyns_p2 = c_asyn + p2_tap
                     
-                            df.loc[len(df.index)] = [s, block, t, cond, c_asyn, asyns_p1, asyns_p2] 
+                        df.loc[len(df.index)] = [s, block, t, cond, tap, p1_tap, p2_tap, c_asyn, asyns_p1, asyns_p2] 
+                        for ms in range(len(taps[tap])):                 
+                            voltage = taps[tap][ms]
+                                 
+                            df_voltage.loc[len(df_voltage.index)] = [s, block, t, cond, tap, ms, voltage]
+
 # Print data.  
-print(df)
+# print(df)
+#%%%
 
-#%%
-
-
-
-
-
-
-
-
+df_voltage.to_csv('Df_Voltage_prueba.csv')
+df.to_csv('Df_prueba.csv')
 
 
 
