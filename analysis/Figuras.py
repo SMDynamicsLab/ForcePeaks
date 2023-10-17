@@ -6,6 +6,7 @@ Created on Tue Oct 10 10:42:14 2023
 """
 import pandas as pd 
 from plotnine import *
+import statsmodels.api as sm
 import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
 from IPython import get_ipython
@@ -338,7 +339,7 @@ print(plot_taps_ave_cond)
 #%%
 
 df_2 = df.copy(deep=True)
-df_2[['Effector', 'Period']] = df_2['Cond'].str.extract('(\w+)(\w+)', expand=True)
+# df_2[['Effector', 'Period']] = df_2['Cond'].str.extract('(\w+)(\w+)', expand=True)
 
 fig_xsize = 20
 fig_ysize = 10
@@ -374,7 +375,10 @@ print(plot_taps_ave_cond)
  
 # fitting the model
 # df.columns = ['Head_size', 'Brain_weight']
-model = smf.ols(formula= 'Asyns_c ~ Peak_interval + Period', data=df).fit()
- 
+model = smf.mixedlm(formula= 'Asyns_p1 ~ Peak_interval + Period', data=df, groups= df['Subjs']).fit()
+# model_anova = sm.stats.anova_lm(model)
 # model summary
 print(model.summary())
+# print(model_anova)
+
+

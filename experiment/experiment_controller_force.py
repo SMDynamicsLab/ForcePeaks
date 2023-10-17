@@ -28,7 +28,7 @@ n_stims = 25 # number of bips in a sequence
 effector_list_dict = {'D':'dedo', 'M':'mano'}
 period_list_dict = {'1':444, '2':666} # interstimulus intervals (ms)
 
-n_trials_perblock = 13 # (multiple of number of pairs of periods) + 1
+n_trials_perblock = 9 # (multiple of number of pairs of periods) + 1
 n_blocks = 4 # either DMMD or MDDM
 
 sensorThreshold  = 50
@@ -58,7 +58,7 @@ class CustomEncoder(json.JSONEncoder):
            return obj.tolist()
        return json.JSONEncoder.default(self, obj)
 
-#%% experiment
+# experiment
 
 
 
@@ -158,7 +158,7 @@ for block in range(0,n_blocks):
             fp.writelines(data)
             # fp.writelines(data2)
 
-		# separates data in type, number, and time
+		# separates data in type, number, and timeV
         e_total = len(data)
         e_type = []
         e_number = []

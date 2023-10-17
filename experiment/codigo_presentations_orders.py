@@ -114,13 +114,13 @@ def presentations_order_generator(path,tot_subjects,blocks_types,trials_per_bloc
 
 #%% A crearlo
 
-path = 'presentation_orders_prueba.csv'
+path = 'presentation_orders.csv'
 
 tot_subject = 48
 
-block_types =[['D']]
+block_types =[['D','M','M','D'],['M','D','D','M']]
 
-trial_per_block = 3 # 9, 13, 17 = m(n**2)+1  con n = 2 (periodos)
+trial_per_block =  9 # 3, 13, 17 = m(n**2)+1  con n = 2 (periodos)
 
 
 presentations_order_generator(path, tot_subject, block_types, trial_per_block)
