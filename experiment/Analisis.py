@@ -47,10 +47,11 @@ def datos(numero_de_sujeto, block, trial):
     register_subjs_path = 'registered_subjects.dat'
     with open(register_subjs_path,"r") as fp:
         subj_number_fullstring = fp.readlines()[numero_de_sujeto].replace("\n", "") # devuelve el S01 si #sujeto = 1
-
+    
     for filename in os.listdir(): # en el () va el path
         if filename.startswith('S' + subj_number_fullstring) and filename.endswith("block" + str(block) + "-" + "trial" + str(trial) + ".dat"):
             data_fname = filename
+            
     # print(data_fname)
     file_to_load = glob.glob(data_fname)[0]
     f_to_load = open(file_to_load,"r")
@@ -61,7 +62,7 @@ def datos(numero_de_sujeto, block, trial):
 
 #%%% Ej. grafico de un trial
 
-sujeto, bloque, trial = 0, 3, 2
+sujeto, bloque, trial = 8, 0, 7
 data1 = datos(sujeto, bloque, trial)['Asynchrony']
 data2 = datos(sujeto, bloque, trial)['Stim_assigned_to_asyn']
 data3 = datos(sujeto, bloque, trial)['Resp_time']
@@ -72,7 +73,7 @@ data = datos(sujeto, bloque, trial)
 voltajes = data["voltage_value"]
 x = np.linspace(0,len(voltajes)-1,len(voltajes))
 
-# plt.close("all")
+plt.close("all")
 
 plt.figure(figsize = (20,6))
 plt.title("Trial = " +str(trial))
@@ -111,28 +112,69 @@ def tap_separator(voltajes,tap_length):
     return taps, peaks
 
 #%%% Para graficar los taps de un trial
-sujeto, bloque, trial = 0, 3, 1
+sujeto, bloque, trial = 4, 1, 7
 tap_length = 50
 data = datos(sujeto, bloque, trial)
 taps, peaks = tap_separator(data["voltage_value"],tap_length)
 
+
+
 plt.close("all")
 plt.figure(figsize = (10,6))
-colors = plt.cm.tab20(np.linspace(0,1,19))
+colors = plt.cm.tab20(np.linspace(0,1,len(taps)))
 all_peaks = []
-for i in range(19):   
-    tap = i
+for tap in range(len(taps)):   
     peaks,_ = find_peaks(taps[tap], distance = 10,height=10)
     all_peaks.append(peaks)
-    plt.plot(taps[tap], ".-", color=colors[i], alpha = 0.5)
+    etiqueta = "S" + str(sujeto) + "B" + str(bloque) + "T" + str(trial) + "t" + str(tap)
+    plt.plot(taps[tap], ".-", color=colors[tap], alpha = 0.5, label = etiqueta)
     
     for p in peaks:
         if not math.isnan(p): 
-            plt.plot(p,taps[tap][int(p)],"o",markersize = 10, color=colors[i])
+            plt.plot(p,taps[tap][int(p)],"o",markersize = 10, color=colors[tap])
 plt.tight_layout()
+plt.legend()
 plt.show()
 
+#%% Para seleccionar trials y taps fallidos
+ 
+tap_length = 50
+trials_per_block = 9 
+blocks_per_subj = 4
 
+register_subjs_path = 'registered_subjects.dat'
+subjects = []
+with open(register_subjs_path,"r") as fp:
+    for i in fp.readlines():
+        subjects.append(int(i.replace("\n", "").replace("S", "")))
+
+
+for s in range(1):
+    for block in range(1): # number_of_blocks
+        for t in range(2): # number of trials_per_block
+            datos_trial = datos(s,block,t)
+            voltajes    = datos_trial["voltage_value"]
+            taps, peaks = tap_separator(voltajes,tap_length)
+            
+            input("Enter para ver trial")
+            
+            plt.close("all")
+            plt.figure(figsize = (10,6))
+            colors = plt.cm.tab20(np.linspace(0,1,len(taps)))
+            all_peaks = []
+            for tap in range(len(taps)):   
+                peaks,_ = find_peaks(taps[tap], distance = 10,height=10)
+                all_peaks.append(peaks)
+                etiqueta = "S" + str(s) + "B" + str(block) + "T" + str(t) + "t" + str(tap)
+                plt.plot(taps[tap], ".-", color=colors[tap], alpha = 0.5, label = etiqueta)
+                
+                for p in peaks:
+                    if not math.isnan(p): 
+                        plt.plot(p,taps[tap][int(p)],"o",markersize = 10, color=colors[tap])
+            plt.tight_layout()
+            plt.legend()
+            plt.show()
+            # input("Enter para ver: S")
 #%% cond_of_trial()
 
 def cond_of_trial(subject,block,trial,trials_per_block):
