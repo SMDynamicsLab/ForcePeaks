@@ -86,19 +86,19 @@ plt.plot(df_voltage_2['Time'][:tap_lenght],df_voltage_2['Voltages'][:tap_lenght]
 
 #%%% GRAFICA EL TAP PROMEDIO DE UN TRIAL PARA UN SUJETO
 
-plt.close("all")
+# plt.close("all")
 plt.figure()
 plt.plot(df_voltage_3['Time'][:tap_lenght],df_voltage_3['mean_voltage'][:tap_lenght])
 
 #%%% GRAFICA EL TAP PROMEDIO DE UNA CONDICION PARA UN SUJETO
 
-plt.close("all")
+# plt.close("all")
 plt.figure()
 plt.plot(df_voltage_4['Time'][:tap_lenght],df_voltage_4['mean_voltage'][:tap_lenght])
 
 #%%% GRAFICA EL TAP PROMEDIO DE TODOS LOS SUJETOS PARA UNA CONDICION
 
-plt.close("all")
+# plt.close("all")
 plt.figure()
 plt.plot(df_voltage_5['Time'][:tap_lenght],df_voltage_5['mean_voltage'][:tap_lenght])
 

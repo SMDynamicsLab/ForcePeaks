@@ -34,8 +34,8 @@ from scipy.signal import find_peaks
 import math
 import glob
 import json
-from IPython import get_ipython
-get_ipython().run_line_magic("matplotlib","qt5")
+# from IPython import get_ipython
+# get_ipython().run_line_magic("matplotlib","qt5")
 
 
 #%% datos(sujeto,block,trial) = data de ese trial
@@ -62,7 +62,7 @@ def datos(numero_de_sujeto, block, trial):
 
 #%%% Ej. grafico de un trial
 
-sujeto, bloque, trial = 8, 0, 7
+sujeto, bloque, trial = 9, 1, 2
 data1 = datos(sujeto, bloque, trial)['Asynchrony']
 data2 = datos(sujeto, bloque, trial)['Stim_assigned_to_asyn']
 data3 = datos(sujeto, bloque, trial)['Resp_time']
@@ -73,7 +73,7 @@ data = datos(sujeto, bloque, trial)
 voltajes = data["voltage_value"]
 x = np.linspace(0,len(voltajes)-1,len(voltajes))
 
-plt.close("all")
+# plt.close("all")
 
 plt.figure(figsize = (20,6))
 plt.title("Trial = " +str(trial))
@@ -91,52 +91,133 @@ def tap_separator(voltajes,tap_length):
         if voltajes[v] == 0 and voltajes[v+1] > 0:
             start_i = v
             # print(start_i)
-        if v > start_i and voltajes[v] > 0 and voltajes[v+1] == 0 and voltajes[v+10] == 0 and start_i<(len(voltajes)-45):
+        # if v > start_i and voltajes[v] > 0 and voltajes[v+1] == 0 and voltajes[v+10] == 0 and start_i<(len(voltajes)-45):
+        if v > start_i and voltajes[v] > 0 and voltajes[v+1] == 0 and start_i<(len(voltajes)-tap_length):
             end_i = v
             bip = np.asarray(voltajes[start_i+1:end_i+3])
             # print("start_i =" +str(start_i))
             # print("end_i =" +str(end_i))
-            if len(bip)>20:    
+            if len(bip)>8:    
                 bip_posta =  np.asarray(voltajes[start_i+1:start_i+tap_length+1])
                 taps.append(bip_posta)
                 
     peaks = []
+    p_min = 0
+    taps_posta = []
     for b in taps:
-        pk, _ = find_peaks(b, distance=5,height=10)
-        if len(pk)==1:
+        pk, _ = find_peaks(b, distance=5,height=10, width = 3)
+        if len(pk)>1:
+            if b[pk[0]]> b[pk[-1]]:
+                taps_posta.append(b)
+                peaks.append(pk[:2])
+        if len(pk)==1:           
             pk = np.concatenate((pk,[np.nan]))
+            taps_posta.append(b)
+            peaks.append(pk[:2])
         if len(pk)==0:
             pk = [np.nan,np.nan]
-        peaks.append(pk[:2])
+            taps_posta.append(b)
+            peaks.append(pk[:2])      
         
-    return taps, peaks
+        min_peaks,_ = find_peaks(-b, distance=5, width = 3)
+        if len(min_peaks) != 0: 
+            p_min = min_peaks[0]
+            
+              
+    return taps_posta, peaks, p_min
 
 #%%% Para graficar los taps de un trial
-sujeto, bloque, trial = 4, 1, 7
-tap_length = 50
+sujeto, bloque, trial = 9, 1, 2
+tap_length = 90
 data = datos(sujeto, bloque, trial)
-taps, peaks = tap_separator(data["voltage_value"],tap_length)
-
+taps, peaks, p_min = tap_separator(data["voltage_value"],tap_length)
 
 
 plt.close("all")
 plt.figure(figsize = (10,6))
 colors = plt.cm.tab20(np.linspace(0,1,len(taps)))
-all_peaks = []
+
 for tap in range(len(taps)):   
-    peaks,_ = find_peaks(taps[tap], distance = 10,height=10)
-    all_peaks.append(peaks)
     etiqueta = "S" + str(sujeto) + "B" + str(bloque) + "T" + str(trial) + "t" + str(tap)
-    plt.plot(taps[tap], ".-", color=colors[tap], alpha = 0.5, label = etiqueta)
-    
-    for p in peaks:
-        if not math.isnan(p): 
-            plt.plot(p,taps[tap][int(p)],"o",markersize = 10, color=colors[tap])
+    if not math.isnan(peaks[tap][0]) and not math.isnan(peaks[tap][1]):
+        plt.plot(taps[tap], ".-", color=colors[tap], alpha = 0.7, label = etiqueta)
+        plt.plot(peaks[tap],taps[tap][peaks[tap]],"o",markersize = 10, color=colors[tap])
+        plt.plot(p_min,taps[tap][int(p_min)],"o",markersize = 10, color=colors[tap])
+    else:
+        plt.plot(taps[tap], "--", color="black", alpha = 0.2,)
+        
+    # plt.plot(p_min,taps[tap][int(p_min)],"o",markersize = 10, color=colors[tap])
+
 plt.tight_layout()
 plt.legend()
 plt.show()
-
 #%% Para seleccionar trials y taps fallidos
+ 
+tap_length = 90
+trials_per_block = 9 
+blocks_per_subj = 4
+ppf = 6 # el primer pico de fuerza que medimos (tiramos los primeros 5)
+heigth_interval = 10 # diferencia minima de altura entre el primer pico y el primer minimo
+register_subjs_path = 'registered_subjects.dat'
+subjects = []
+with open(register_subjs_path,"r") as fp:
+    for i in fp.readlines():
+        subjects.append(int(i.replace("\n", "").replace("S", "")))
+
+
+subjs = [2,3]
+for s in subjs:
+    for block in range(blocks_per_subj): # number_of_blocks
+        for t in range(trials_per_block): # number of trials_per_block
+            datos_trial = datos(s,block,t)
+            resp_time   = datos_trial['Resp_time']
+            stim_time   = datos_trial['Stim_time']
+            asyns       = datos_trial["Asynchrony"]
+            voltajes    = datos_trial["voltage_value"]
+            assign_stim = datos_trial['Stim_assigned_to_asyn']
+            
+            input("Enter para ver el trial: S" + str(s) + "B" + str(block) + "T" + str(t) + ": ")
+            
+            taps, peaks, p_min = tap_separator(np.asarray(voltajes),tap_length)
+            taps=np.asarray(taps)
+            peaks=np.asarray(peaks)
+            # print(np.shape(peaks))
+            # print(np.shape(taps))
+            # cond = cond_of_trial(s, block, t, trials_per_block)
+            if len(taps) != 0:
+                indice =  int(np.argwhere(np.array(assign_stim)>=ppf-1)[0][0]) # indice del primer elemento mayo o igual a 5
+                asyns_over6 = asyns[indice:]
+                resp_time_taps = resp_time[len(resp_time)-len(taps):]
+                asyns_taps = asyns[len(asyns)-len(taps):]
+                
+                
+        
+                plt.close("all")
+                plt.figure(figsize = (10,6))
+                plt.title("Sujeto " + str(s) + ", Bloque " + str(block) + ", Trial " + str(t) )
+                colors = plt.cm.tab20(np.linspace(0,1,len(taps)))
+            
+                for tap in range(len(asyns_taps)): 
+               
+                    if not math.isnan(asyns_taps[tap]):              
+                        if not math.isnan(peaks[tap][1]):
+                            # if taps[tap][int(peaks[tap][1])] > taps[tap][int(peaks[tap][p_min])] and (taps[tap][int(peaks[tap][0])] - taps[tap][int(peaks[tap][p_min])]) > heigth_interval:
+                            if peaks[tap][0] < p_min and peaks[tap][1] > p_min and (taps[tap][int(peaks[tap][0])] - taps[tap][int(p_min)]) > heigth_interval:       
+                                plt.plot(taps[tap], ".-", color=colors[tap], alpha = 0.7, label = str(tap),lw = 2)
+                                plt.plot(peaks[tap][0],taps[tap][int(peaks[tap][0])],"o",markersize = 10, color=colors[tap])
+                                plt.plot(peaks[tap][1],taps[tap][int(peaks[tap][1])],"o",markersize = 10, color=colors[tap])
+                                plt.plot(p_min,taps[tap][int(p_min)],"o",markersize = 10, color=colors[tap])
+                    else:
+                        plt.plot(taps[tap], "--", color="black", alpha = 0.2)
+                
+                plt.plot((0,0), alpha = 0, label = " ") # 
+                plt.tight_layout()
+                plt.legend()
+                plt.show()
+            else:
+                print("No data in trial")
+                        
+#%% Para seleccionar trials y taps fallidos - beta
  
 tap_length = 50
 trials_per_block = 9 
@@ -149,21 +230,21 @@ with open(register_subjs_path,"r") as fp:
         subjects.append(int(i.replace("\n", "").replace("S", "")))
 
 
-for s in range(1):
-    for block in range(1): # number_of_blocks
-        for t in range(2): # number of trials_per_block
+for s in range(len(subjects)):
+    for block in range(blocks_per_subj): # number_of_blocks
+        for t in range(trials_per_block): # number of trials_per_block
             datos_trial = datos(s,block,t)
             voltajes    = datos_trial["voltage_value"]
             taps, peaks = tap_separator(voltajes,tap_length)
             
-            input("Enter para ver trial")
+            input("Enter para ver el trial: S" + str(s) + "B" + str(block) + "T" + str(t) + ": ")
             
             plt.close("all")
             plt.figure(figsize = (10,6))
             colors = plt.cm.tab20(np.linspace(0,1,len(taps)))
             all_peaks = []
             for tap in range(len(taps)):   
-                peaks,_ = find_peaks(taps[tap], distance = 10,height=10)
+                peaks,_ = find_peaks(taps[tap], distance = 10,height=10, width = 3)
                 all_peaks.append(peaks)
                 etiqueta = "S" + str(s) + "B" + str(block) + "T" + str(t) + "t" + str(tap)
                 plt.plot(taps[tap], ".-", color=colors[tap], alpha = 0.5, label = etiqueta)
@@ -254,8 +335,9 @@ df_posta_casi['Period']= df_posta_casi['Period'].replace('2','666')
 
 df_posta_casi.to_csv('Df_prueba.csv')
 
-
-
+#%%
+for i in range(len(taps)):
+    print(len(taps[i]))
 
 
 
