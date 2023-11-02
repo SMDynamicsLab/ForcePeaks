@@ -62,7 +62,7 @@ def datos(numero_de_sujeto, block, trial):
 
 #%%% Ej. grafico de un trial
 
-sujeto, bloque, trial = 9, 1, 2
+sujeto, bloque, trial = 3, 3, 5 
 data1 = datos(sujeto, bloque, trial)['Asynchrony']
 data2 = datos(sujeto, bloque, trial)['Stim_assigned_to_asyn']
 data3 = datos(sujeto, bloque, trial)['Resp_time']
@@ -127,7 +127,7 @@ def tap_separator(voltajes,tap_length):
     return taps_posta, peaks, p_min
 
 #%%% Para graficar los taps de un trial
-sujeto, bloque, trial = 9, 1, 2
+sujeto, bloque, trial = 3, 0, 2
 tap_length = 90
 data = datos(sujeto, bloque, trial)
 taps, peaks, p_min = tap_separator(data["voltage_value"],tap_length)
@@ -165,7 +165,7 @@ with open(register_subjs_path,"r") as fp:
         subjects.append(int(i.replace("\n", "").replace("S", "")))
 
 
-subjs = [2,3]
+subjs = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]
 for s in subjs:
     for block in range(blocks_per_subj): # number_of_blocks
         for t in range(trials_per_block): # number of trials_per_block
