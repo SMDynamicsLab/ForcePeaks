@@ -59,6 +59,12 @@ def datos(numero_de_sujeto, block, trial):
     f_to_load.close()
     content = json.loads(content)
     return content
+#%%
+
+ver=datos(0,0,0)
+
+
+
 
 #%%% Ej. grafico de un trial
 
@@ -217,6 +223,8 @@ for s in subjs:
             else:
                 print("No data in trial")
                         
+
+
 #%% Para seleccionar trials y taps fallidos - beta
  
 tap_length = 50
@@ -259,7 +267,7 @@ for s in range(len(subjects)):
 #%% cond_of_trial()
 
 def cond_of_trial(subject,block,trial,trials_per_block):
-    path_po = 'presentation_orders2.csv'
+    path_po = 'presentation_orders.csv'
     with open(path_po, 'r') as file:
         f = file.readlines()
     cond =  list(f[1+ trial+block*trials_per_block].split(","))[subject + 2]
@@ -279,11 +287,12 @@ trials_per_block = 13
 
 df = pd.DataFrame({'Subjs':[], 'Block':[], 'Trial':[], 'Cond':[], 'Tap':[], 'P1':[], 'P2':[], 'Asyns_c':[],'Asyns_p1':[],'Asyns_p2':[],'Peak_interval':[]}) # 'Asign_Resp':[]
 df_voltage = pd.DataFrame({'Subjs':[], 'Block':[], 'Trial':[], 'Cond':[], 'Tap':[], 'Time':[], 'Voltages':[]})
-
+# subjs = [1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]
+subjs = [1]
 # La idea es que cada fila es un bip
-for s in range(len(subjects)):
-    for block in tqdm(range(4)): # number_of_blocks
-        for t in range(13): # number of trials_per_block
+for s in subjs:
+    for block in tqdm(range(blocks_per_subj)): # number_of_blocks
+        for t in range(trials_per_block): # number of trials_per_block
             datos_trial = datos(s,block,t)
             resp_time   = datos_trial['Resp_time']
             stim_time   = datos_trial['Stim_time']
@@ -291,7 +300,7 @@ for s in range(len(subjects)):
             voltajes    = datos_trial["voltage_value"]
             assign_stim = datos_trial['Stim_assigned_to_asyn']
             
-            taps, peaks = tap_separator(np.asarray(voltajes),tap_length)
+            taps, peaks, p_min = tap_separator(np.asarray(voltajes),tap_length)
             taps=np.asarray(taps)
             peaks=np.asarray(peaks)
             # print(np.shape(peaks))
@@ -306,25 +315,26 @@ for s in range(len(subjects)):
                 # asign_stim_tap = assign_stim[tap+indice]
                 if not math.isnan(asyns_taps[tap]):              
                     if not math.isnan(peaks[tap][1]):
-                        c_asyn = asyns_taps[tap] 
-                        p1_tap = peaks[tap][0] # 
-                        p2_tap = peaks[tap][1] # esta es la asincronia de p2 con la respuesta
-                        # asyns_p2 = resp_time[tap+indice] + p2_tap[tap] - stim_time[asing_stim_tap]
-                        asyns_p1 = c_asyn + p1_tap
-                        asyns_p2 = c_asyn + p2_tap
-                        peak_interval = p2_tap-p1_tap
-                        df.loc[len(df.index)] = [s, block, t, cond, tap, p1_tap, p2_tap, c_asyn, asyns_p1, asyns_p2, peak_interval] 
-                        for ms in range(len(taps[tap])):                 
-                            voltage = taps[tap][ms]
-                                 
-                            df_voltage.loc[len(df_voltage.index)] = [s, block, t, cond, tap, ms, voltage]
+                        if peaks[tap][0] < p_min and peaks[tap][1] > p_min and (taps[tap][int(peaks[tap][0])] - taps[tap][int(p_min)]) > heigth_interval:
+                            c_asyn = asyns_taps[tap] 
+                            p1_tap = peaks[tap][0] # 
+                            p2_tap = peaks[tap][1] # esta es la asincronia de p2 con la respuesta
+                            # asyns_p2 = resp_time[tap+indice] + p2_tap[tap] - stim_time[asing_stim_tap]
+                            asyns_p1 = c_asyn + p1_tap
+                            asyns_p2 = c_asyn + p2_tap
+                            peak_interval = p2_tap-p1_tap
+                            df.loc[len(df.index)] = [s, block, t, cond, tap, p1_tap, p2_tap, c_asyn, asyns_p1, asyns_p2, peak_interval] 
+                            for ms in range(len(taps[tap])):                 
+                                voltage = taps[tap][ms]
+                                     
+                                df_voltage.loc[len(df_voltage.index)] = [s, block, t, cond, tap, ms, voltage]
 
 # Print data.  
 # print(df)
 #%%%
 
-df_voltage.to_csv('Df_Voltage_prueba.csv')
-df.to_csv('Df_prueba.csv')
+df_voltage.to_csv('Df_Voltage.csv')
+df.to_csv('Df.csv')
 
 
 #%%
@@ -333,12 +343,14 @@ df_posta_casi[['Effector', 'Period']] = df_posta_casi['Cond'].str.extract('(\w+)
 df_posta_casi['Period']= df_posta_casi['Period'].replace('1','444')
 df_posta_casi['Period']= df_posta_casi['Period'].replace('2','666')
 
-df_posta_casi.to_csv('Df_prueba.csv')
+df_posta_casi.to_csv('Df.csv')
 
 #%%
 for i in range(len(taps)):
     print(len(taps[i]))
 
+
+#%%
 
 
 
