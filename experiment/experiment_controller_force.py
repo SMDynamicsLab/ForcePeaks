@@ -23,7 +23,7 @@ get_ipython().run_line_magic("matplotlib","qt5")
 #%% parameters and files
 
 
-n_stims = 25 # number of bips in a sequence
+n_stims = 25 # number of bips in a sequmaence
 
 effector_list_dict = {'D':'dedo', 'M':'mano'}
 period_list_dict = {'1':444, '2':666} # interstimulus intervals (ms)
