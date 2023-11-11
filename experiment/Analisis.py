@@ -275,20 +275,20 @@ def cond_of_trial(subject,block,trial,trials_per_block):
 
     
 #%% Data Frame de Tiempos y Voltajes
-
+blocks_per_subj = 4
 register_subjs_path = 'registered_subjects.dat'
-subjects = []
+subjects = [0]
 with open(register_subjs_path,"r") as fp:
     for i in fp.readlines():
         subjects.append(int(i.replace("\n", "").replace("S", "")))
         
 ppf = 6 # el primer pico de fuerza que medimos (tiramos los primeros 5)
-trials_per_block = 13
+trials_per_block = 9
 
 df = pd.DataFrame({'Subjs':[], 'Block':[], 'Trial':[], 'Cond':[], 'Tap':[], 'P1':[], 'P2':[], 'Asyns_c':[],'Asyns_p1':[],'Asyns_p2':[],'Peak_interval':[]}) # 'Asign_Resp':[]
 df_voltage = pd.DataFrame({'Subjs':[], 'Block':[], 'Trial':[], 'Cond':[], 'Tap':[], 'Time':[], 'Voltages':[]})
-# subjs = [1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]
-subjs = [1]
+subjs = [1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]#sujetos 0 y 3 descartados por falta de contenido
+
 # La idea es que cada fila es un bip
 for s in subjs:
     for block in tqdm(range(blocks_per_subj)): # number_of_blocks
@@ -307,50 +307,115 @@ for s in subjs:
             # print(np.shape(taps))
             cond = cond_of_trial(s, block, t, trials_per_block)
             
-            indice =  int(np.argwhere(np.array(assign_stim)>=ppf-1)[0][0]) # indice del primer elemento mayo o igual a 5
-            asyns_over6 = asyns[indice:]
-            resp_time_taps = resp_time[len(resp_time)-len(taps):]
-            asyns_taps = asyns[len(asyns)-len(taps):]
-            for tap in range(len(asyns_taps)):  
-                # asign_stim_tap = assign_stim[tap+indice]
-                if not math.isnan(asyns_taps[tap]):              
-                    if not math.isnan(peaks[tap][1]):
-                        if peaks[tap][0] < p_min and peaks[tap][1] > p_min and (taps[tap][int(peaks[tap][0])] - taps[tap][int(p_min)]) > heigth_interval:
-                            c_asyn = asyns_taps[tap] 
-                            p1_tap = peaks[tap][0] # 
-                            p2_tap = peaks[tap][1] # esta es la asincronia de p2 con la respuesta
-                            # asyns_p2 = resp_time[tap+indice] + p2_tap[tap] - stim_time[asing_stim_tap]
-                            asyns_p1 = c_asyn + p1_tap
-                            asyns_p2 = c_asyn + p2_tap
-                            peak_interval = p2_tap-p1_tap
-                            df.loc[len(df.index)] = [s, block, t, cond, tap, p1_tap, p2_tap, c_asyn, asyns_p1, asyns_p2, peak_interval] 
-                            for ms in range(len(taps[tap])):                 
-                                voltage = taps[tap][ms]
-                                     
-                                df_voltage.loc[len(df_voltage.index)] = [s, block, t, cond, tap, ms, voltage]
+            if len(np.asarray(assign_stim))>1:
+                cosito=np.argwhere(np.array(assign_stim)>=ppf-1)
+                if len(cosito)>0:
+                    indice =  int(cosito[0][0]) #NUESTRO PROBLEMA ES CAUNDO NO EXISTE UNO MAYOR A 6
+                    # indice del primer elemento mayo o igual a 5
+                    asyns_over6 = asyns[indice:]
+                    
+                
+                    resp_time_taps = resp_time[len(resp_time)-len(taps):]
+                    asyns_taps = asyns[len(asyns)-len(taps):]
+                    for tap in range(len(asyns_taps)):  
+                        # asign_stim_tap = assign_stim[tap+indice]
+                        if not math.isnan(asyns_taps[tap]):              
+                            if not math.isnan(peaks[tap][1]):
+                                if peaks[tap][0] < p_min and peaks[tap][1] > p_min and (taps[tap][int(peaks[tap][0])] - taps[tap][int(p_min)]) > heigth_interval:
+                                    c_asyn = asyns_taps[tap] 
+                                    p1_tap = peaks[tap][0] # 
+                                    p2_tap = peaks[tap][1] # esta es la asincronia de p2 con la respuesta
+                                    # asyns_p2 = resp_time[tap+indice] + p2_tap[tap] - stim_time[asing_stim_tap]
+                                    asyns_p1 = c_asyn + p1_tap
+                                    asyns_p2 = c_asyn + p2_tap
+                                    peak_interval = p2_tap-p1_tap
+                                    df.loc[len(df.index)] = [s, block, t, cond, tap, p1_tap, p2_tap, c_asyn, asyns_p1, asyns_p2, peak_interval] 
+                                    for ms in range(len(taps[tap])):                 
+                                        voltage = taps[tap][ms]
+                                        
+                                        df_voltage.loc[len(df_voltage.index)] = [s, block, t, cond, tap, ms, voltage]
+        
+    # Print data.  
+    # print(df)
+#%%% #ESTE NO USAR PORQUE NO TIENE LOS 444 Y 666
 
-# Print data.  
-# print(df)
-#%%%
-
+df.to_csv('Df_casi.csv')
 df_voltage.to_csv('Df_Voltage.csv')
-df.to_csv('Df.csv')
 
 
 #%%
-df_posta_casi= df.copy(deep=True)
-df_posta_casi[['Effector', 'Period']] = df_posta_casi['Cond'].str.extract('(\w+)(\w+)', expand=True)
-df_posta_casi['Period']= df_posta_casi['Period'].replace('1','444')
-df_posta_casi['Period']= df_posta_casi['Period'].replace('2','666')
+df_posta= df.copy(deep=True)
+df_posta[['Effector', 'Period']] = df_posta['Cond'].str.extract('(\w+)(\w+)', expand=True)
+df_posta['Period']= df_posta['Period'].replace('1','444')
+df_posta['Period']= df_posta['Period'].replace('2','666')
 
-df_posta_casi.to_csv('Df.csv')
-
-#%%
-for i in range(len(taps)):
-    print(len(taps[i]))
+df_posta.to_csv('Df.csv')
+df_voltage.to_csv('Df_Voltage.csv')
+#%% NO CORRER ES POR SI NECESITAMOS AGREGAR SUJETOS AL DF
 
 
-#%%
+
+blocks_per_subj = 4
+register_subjs_path = 'registered_subjects.dat'
+with open(register_subjs_path,"r") as fp:
+    for i in fp.readlines():
+        subjects.append(int(i.replace("\n", "").replace("S", "")))
+        
+ppf = 6 # el primer pico de fuerza que medimos (tiramos los primeros 5)
+trials_per_block = 9
+subjs_2=[10,11,12,13,14,15,16,17,18,19,20,21]
+df_2 = pd.read_csv("Df.csv")
+df_voltage_2 = pd.read_csv("Df_Voltage.csv")
+# La idea es que cada fila es un bip
+for s in subjs_2:
+    for block in tqdm(range(blocks_per_subj)): # number_of_blocks
+        for t in range(trials_per_block): # number of trials_per_block
+            datos_trial = datos(s,block,t)
+            resp_time   = datos_trial['Resp_time']
+            stim_time   = datos_trial['Stim_time']
+            asyns       = datos_trial["Asynchrony"]
+            voltajes    = datos_trial["voltage_value"]
+            assign_stim = datos_trial['Stim_assigned_to_asyn']
+            
+            taps, peaks, p_min = tap_separator(np.asarray(voltajes),tap_length)
+            taps=np.asarray(taps)
+            peaks=np.asarray(peaks)
+            # print(np.shape(peaks))
+            # print(np.shape(taps))
+            cond = cond_of_trial(s, block, t, trials_per_block)
+            
+            if len(np.asarray(assign_stim))>1:
+                cosito=np.argwhere(np.array(assign_stim)>=ppf-1)
+                if len(cosito)>0:
+                    indice =  int(cosito[0][0]) #NUESTRO PROBLEMA ES CAUNDO NO EXISTE UNO MAYOR A 6
+                    # indice del primer elemento mayo o igual a 5
+                    asyns_over6 = asyns[indice:]
+                    
+                
+                    resp_time_taps = resp_time[len(resp_time)-len(taps):]
+                    asyns_taps = asyns[len(asyns)-len(taps):]
+                    for tap in range(len(asyns_taps)):  
+                        # asign_stim_tap = assign_stim[tap+indice]
+                        if not math.isnan(asyns_taps[tap]):              
+                            if not math.isnan(peaks[tap][1]):
+                                if peaks[tap][0] < p_min and peaks[tap][1] > p_min and (taps[tap][int(peaks[tap][0])] - taps[tap][int(p_min)]) > heigth_interval:
+                                    c_asyn = asyns_taps[tap] 
+                                    p1_tap = peaks[tap][0] # 
+                                    p2_tap = peaks[tap][1] # esta es la asincronia de p2 con la respuesta
+                                    # asyns_p2 = resp_time[tap+indice] + p2_tap[tap] - stim_time[asing_stim_tap]
+                                    asyns_p1 = c_asyn + p1_tap
+                                    asyns_p2 = c_asyn + p2_tap
+                                    peak_interval = p2_tap-p1_tap
+                                    df_2.loc[len(df_2.index)] = [s, block, t, cond, tap, p1_tap, p2_tap, c_asyn, asyns_p1, asyns_p2, peak_interval] 
+                                    for ms in range(len(taps[tap])):                 
+                                        voltage = taps[tap][ms]
+                                        
+                                        df_voltage_2.loc[len(df_voltage_2.index)] = [s, block, t, cond, tap, ms, voltage]
+        
+# Print data. 
+# print(df)
+
+
 
 
 
