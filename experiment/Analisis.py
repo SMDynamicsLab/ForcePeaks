@@ -59,16 +59,10 @@ def datos(numero_de_sujeto, block, trial):
     f_to_load.close()
     content = json.loads(content)
     return content
-#%%
-
-ver=datos(0,0,0)
-
-
-
 
 #%%% Ej. grafico de un trial
 
-sujeto, bloque, trial = 3, 3, 5 
+sujeto, bloque, trial = 19, 3, 5 
 data1 = datos(sujeto, bloque, trial)['Asynchrony']
 data2 = datos(sujeto, bloque, trial)['Stim_assigned_to_asyn']
 data3 = datos(sujeto, bloque, trial)['Resp_time']
@@ -134,7 +128,7 @@ def tap_separator(voltajes,tap_length):
 
 #%%% Para graficar los taps de un trial
 sujeto, bloque, trial = 3, 0, 2
-tap_length = 90
+tap_length = 50
 data = datos(sujeto, bloque, trial)
 taps, peaks, p_min = tap_separator(data["voltage_value"],tap_length)
 
@@ -159,7 +153,7 @@ plt.legend()
 plt.show()
 #%% Para seleccionar trials y taps fallidos
  
-tap_length = 90
+tap_length = 50
 trials_per_block = 9 
 blocks_per_subj = 4
 ppf = 6 # el primer pico de fuerza que medimos (tiramos los primeros 5)
@@ -351,21 +345,31 @@ df_posta['Period']= df_posta['Period'].replace('2','666')
 
 df_posta.to_csv('Df.csv')
 df_voltage.to_csv('Df_Voltage.csv')
+
 #%% NO CORRER ES POR SI NECESITAMOS AGREGAR SUJETOS AL DF
 
 
 
-blocks_per_subj = 4
-register_subjs_path = 'registered_subjects.dat'
-with open(register_subjs_path,"r") as fp:
-    for i in fp.readlines():
-        subjects.append(int(i.replace("\n", "").replace("S", "")))
+# blocks_per_subj = 4
+# register_subjs_path = 'registered_subjects.dat'
+# with open(register_subjs_path,"r") as fp:
+#     for i in fp.readlines():
+#         subjects.append(int(i.replace("\n", "").replace("S", "")))
         
 ppf = 6 # el primer pico de fuerza que medimos (tiramos los primeros 5)
 trials_per_block = 9
-subjs_2=[10,11,12,13,14,15,16,17,18,19,20,21]
+subjs_2=[22,23,24,25,26]
 df_2 = pd.read_csv("Df.csv")
 df_voltage_2 = pd.read_csv("Df_Voltage.csv")
+tap_length = 50
+df_2 = df_2.drop('Unnamed: 0',axis=1)
+
+df_voltage_2 = df_voltage_2.drop('Unnamed: 0',axis=1)
+
+
+
+
+
 # La idea es que cada fila es un bip
 for s in subjs_2:
     for block in tqdm(range(blocks_per_subj)): # number_of_blocks
@@ -391,7 +395,6 @@ for s in subjs_2:
                     # indice del primer elemento mayo o igual a 5
                     asyns_over6 = asyns[indice:]
                     
-                
                     resp_time_taps = resp_time[len(resp_time)-len(taps):]
                     asyns_taps = asyns[len(asyns)-len(taps):]
                     for tap in range(len(asyns_taps)):  
@@ -406,7 +409,7 @@ for s in subjs_2:
                                     asyns_p1 = c_asyn + p1_tap
                                     asyns_p2 = c_asyn + p2_tap
                                     peak_interval = p2_tap-p1_tap
-                                    df_2.loc[len(df_2.index)] = [s, block, t, cond, tap, p1_tap, p2_tap, c_asyn, asyns_p1, asyns_p2, peak_interval] 
+                                    df_2.loc[len(df_2.index)] = [s, block, t, cond, tap, p1_tap, p2_tap, c_asyn, asyns_p1, asyns_p2, peak_interval,cond[0],cond[1]] 
                                     for ms in range(len(taps[tap])):                 
                                         voltage = taps[tap][ms]
                                         
@@ -415,7 +418,15 @@ for s in subjs_2:
 # Print data. 
 # print(df)
 
+#%%%
 
+df_posta= df_2.copy(deep=True)
+# df_posta[['Effector', 'Period']] = df_posta['Cond'].str.extract('(\w+)(\w+)', expand=True)
+df_posta['Period']= df_posta['Period'].replace('1','444')
+df_posta['Period']= df_posta['Period'].replace('2','666')
+
+df_posta.to_csv('Df.csv')
+df_voltage_2.to_csv('Df_Voltage.csv')
 
 
 
