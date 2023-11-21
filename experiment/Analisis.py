@@ -20,6 +20,7 @@ following disclaimer.
 *Redistributions in binary form must reproduce the above copyright notice, this list of conditions and 
 the following disclaimer in the documentation and/or other materials provided with the distribution.
 
+
 *Neither the name of the Lab nor the names of its contributors may be used to endorse or promote products
 derived from this software without specific prior written permission.
 
@@ -47,6 +48,7 @@ def datos(numero_de_sujeto, block, trial):
     register_subjs_path = 'registered_subjects.dat'
     with open(register_subjs_path,"r") as fp:
         subj_number_fullstring = fp.readlines()[numero_de_sujeto].replace("\n", "") # devuelve el S01 si #sujeto = 1
+   
     
     for filename in os.listdir(): # en el () va el path
         if filename.startswith('S' + subj_number_fullstring) and filename.endswith("block" + str(block) + "-" + "trial" + str(trial) + ".dat"):
@@ -62,7 +64,7 @@ def datos(numero_de_sujeto, block, trial):
 
 #%%% Ej. grafico de un trial
 
-sujeto, bloque, trial = 19, 3, 5 
+sujeto, bloque, trial = 12, 3, 5 
 data1 = datos(sujeto, bloque, trial)['Asynchrony']
 data2 = datos(sujeto, bloque, trial)['Stim_assigned_to_asyn']
 data3 = datos(sujeto, bloque, trial)['Resp_time']
@@ -72,12 +74,23 @@ data5 = datos(sujeto, bloque, trial)['Data']
 data = datos(sujeto, bloque, trial)
 voltajes = data["voltage_value"]
 x = np.linspace(0,len(voltajes)-1,len(voltajes))
+x_1 = np.linspace(0,len(data1)-1,len(data1))
+x_1 = [8,106,204,302,400,]
+x_1 = np.linspace(8,1880,20)
 
-# plt.close("all")
 
-plt.figure(figsize = (20,6))
-plt.title("Trial = " +str(trial))
-plt.plot(x,voltajes)
+plt.close("all")
+fig, axs = plt.subplots(2,figsize = (20,6),sharex=True)
+# fig.suptitle('Vertically stacked subplots')
+colors=plt.cm.viridis(np.linspace(0,1,5))
+axs[1].plot(x,voltajes,color=colors[0])
+axs[0].plot(x_1,data1[4:],color=colors[0])
+axs[0].plot(x_1,data1[4:],'o',color=colors[2],markersize=10)
+axs[0].set_ylabel("Asincronías [ms]",size="20")
+axs[1].set_ylabel("Voltajes [u.a]",size="20")
+axs[1].set_xlabel("Tiempo [ms]",size="20")
+axs[0].grid()
+axs[1].grid()
 plt.tight_layout()
 plt.show()
 
@@ -126,9 +139,73 @@ def tap_separator(voltajes,tap_length):
               
     return taps_posta, peaks, p_min
 
-#%%% Para graficar los taps de un trial
-sujeto, bloque, trial = 3, 0, 2
-tap_length = 50
+#%% CARGAR DATAFRAME
+
+df = pd.read_csv("Df.csv")
+df_voltage = pd.read_csv("Df_Voltage.csv")
+
+df_voltage_2 = df_voltage.copy(deep=True)
+df_voltage_2['Subjs'] = df_voltage_2.Subjs.astype('string')
+df_voltage_2['Block'] = df_voltage_2.Block.astype('string')
+df_voltage_2['Trial'] = df_voltage_2.Trial.astype('string')
+df_voltage_2['Tap'] = df_voltage_2.Tap.astype('string')
+df_voltage_2 = (df_voltage_2
+				   # create label for plot grouping
+				   .assign(label = lambda df: df.Subjs + df.Block + df.Trial + df.Tap)
+				   )
+
+df['Subjs'] = df.Subjs.astype('string')
+df['Cond'] = df.Cond.astype('string')
+df['Trial'] = df.Trial.astype('string')
+df['Tap'] = df.Tap.astype('string')
+
+
+#%%%
+
+
+df_voltage_3 = (df_voltage_2
+                .groupby(['Subjs','Cond','Trial','Time'], as_index=False)
+                .agg(mean_voltage = ('Voltages','mean'))
+                .assign(label = lambda df: df.Subjs + df.Cond + df.Trial))
+
+df_voltage_4 = (df_voltage_3
+                .groupby(['Subjs','Cond','Time'], as_index=False)
+                .agg(mean_voltage = ('mean_voltage','mean'),
+                     voltage_std = ('mean_voltage','std'))
+                .assign(label = lambda df: df.Subjs + df.Cond))
+
+df_voltage_5 = (df_voltage_4
+                .groupby(['Cond','Time'], as_index=False)
+                .agg(mean_voltage = ('mean_voltage','mean'))
+                .assign(label = lambda df: df.Cond))
+
+df_voltage_6 = (df_voltage_2                                   #ESTE ES LA "BOLSA" PARA C/SUJETO
+                .groupby(['Subjs','Cond','Time'], as_index=False)
+                .agg(mean_voltage = ('Voltages','mean'))
+                .assign(label = lambda df: df.Subjs + df.Cond))
+
+
+df_voltage_7 = (df_voltage_6                                   #ESTE ES LA "BOLSA" 
+                .groupby(['Cond','Time'], as_index=False)
+                .agg(mean_voltage = ('mean_voltage','mean'))
+                .assign(label = lambda df: df.Cond))
+
+df_voltage_8 = (df_voltage_6                                   #ESTE ES LA "BOLSA" 
+                .groupby(['Cond','Time'], as_index=False)
+                .apply(lambda df: pd.Series({
+		'mean_voltage': df.mean_voltage.mean(),
+		'sd_voltage': df.mean_voltage.std(),
+		'n_voltage': df.mean_voltage.count(),
+		'ci_voltage': 1.96*df.mean_voltage.sem()
+		}))
+                .assign(label = lambda df: df.Cond))
+
+
+
+
+#%% Para graficar los taps de un trial
+sujeto, bloque, trial = 1, 1, 0
+tap_length = 74
 data = datos(sujeto, bloque, trial)
 taps, peaks, p_min = tap_separator(data["voltage_value"],tap_length)
 
@@ -136,6 +213,7 @@ taps, peaks, p_min = tap_separator(data["voltage_value"],tap_length)
 plt.close("all")
 plt.figure(figsize = (10,6))
 colors = plt.cm.tab20(np.linspace(0,1,len(taps)))
+plt.plot(df_voltage_3['Time'][:tap_length],df_voltage_3['mean_voltage'][:tap_length])
 
 for tap in range(len(taps)):   
     etiqueta = "S" + str(sujeto) + "B" + str(bloque) + "T" + str(trial) + "t" + str(tap)
@@ -150,6 +228,37 @@ for tap in range(len(taps)):
 
 plt.tight_layout()
 plt.legend()
+plt.show()
+#%% Para graficar los taps de un trial (Informe)
+sujeto, bloque, trial = 1, 1, 0
+tap_length = 74
+data = datos(sujeto, bloque, trial)
+taps, peaks, p_min = tap_separator(data["voltage_value"],tap_length)
+
+
+plt.close("all")
+plt.figure(figsize = (10,6))
+colors = plt.cm.viridis(np.linspace(0,1,5))
+plt.plot(df_voltage_3['Time'][:tap_length],df_voltage_3['mean_voltage'][:tap_length],color=colors[0],lw=2,
+         label = "Tap promedio")
+
+plt.plot(taps[0], "--", color=colors[1], alpha = 0.3,lw=2,label="Taps")
+for tap in range(len(taps)):   
+    etiqueta = "S" + str(sujeto) + "B" + str(bloque) + "T" + str(trial) + "t" + str(tap)
+    
+    if not math.isnan(peaks[tap][0]) and not math.isnan(peaks[tap][1]):
+        plt.plot(taps[tap], "--", color=colors[1], alpha = 0.3,lw=2)
+        # plt.plot(peaks[tap],taps[tap][peaks[tap]],"o",markersize = 10, color=colors[tap])
+        # plt.plot(p_min,taps[tap][int(p_min)],"o",markersize = 10, color=colors[tap])
+    # else:
+        # plt.plot(taps[tap], "--", color="black", alpha = 0.2,)
+        
+    # plt.plot(p_min,taps[tap][int(p_min)],"o",markersize = 10, color=colors[tap])
+plt.xlabel("Tiempo [ms]", size = 20)
+plt.ylabel("Voltajes [u.a.]",size = 20)
+plt.grid()
+plt.tight_layout()
+plt.legend(fontsize = 18)
 plt.show()
 #%% Para seleccionar trials y taps fallidos
  
@@ -337,7 +446,7 @@ df.to_csv('Df_casi.csv')
 df_voltage.to_csv('Df_Voltage.csv')
 
 
-#%%
+#%% Guardar df
 df_posta= df.copy(deep=True)
 df_posta[['Effector', 'Period']] = df_posta['Cond'].str.extract('(\w+)(\w+)', expand=True)
 df_posta['Period']= df_posta['Period'].replace('1','444')

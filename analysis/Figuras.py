@@ -80,28 +80,31 @@ df_voltage_8 = (df_voltage_6                                   #ESTE ES LA "BOLS
 
 
 #%% GRAFICA UN TAP DE UN TRIAL DE UNA COND DE UN SUJETO
-tap_lenght=50
+tap_length=75
 
 plt.figure()
-plt.plot(df_voltage_2['Time'][:tap_lenght],df_voltage_2['Voltages'][:tap_lenght])
+plt.plot(df_voltage_2['Time'][:tap_length],df_voltage_2['Voltages'][:tap_length])
 
 #%%% GRAFICA EL TAP PROMEDIO DE UN TRIAL PARA UN SUJETO
 
-# plt.close("all")
+plt.close("all")
 plt.figure()
-plt.plot(df_voltage_3['Time'][:tap_lenght],df_voltage_3['mean_voltage'][:tap_lenght])
+plt.plot(df_voltage_3['Time'][:tap_length],df_voltage_3['mean_voltage'][:tap_length])
+for i in range(10):
+    plt.plot(df_voltage_2['Time'][:tap_length],df_voltage_2['Voltages'][i*tap_length:(i+1)*tap_length])
+
 
 #%%% GRAFICA EL TAP PROMEDIO DE UNA CONDICION PARA UN SUJETO
 
 # plt.close("all")
 plt.figure()
-plt.plot(df_voltage_4['Time'][:tap_lenght],df_voltage_4['mean_voltage'][:tap_lenght])
+plt.plot(df_voltage_4['Time'][:tap_length],df_voltage_4['mean_voltage'][:tap_length])
 
 #%%% GRAFICA EL TAP PROMEDIO DE TODOS LOS SUJETOS PARA UNA CONDICION
 
 # plt.close("all")
 plt.figure()
-plt.plot(df_voltage_5['Time'][:tap_lenght],df_voltage_5['mean_voltage'][:tap_lenght])
+plt.plot(df_voltage_5['Time'][:tap_length],df_voltage_5['mean_voltage'][:tap_length])
 
 #%% GRAFICA TODO
 
@@ -192,8 +195,8 @@ plot_taps_ave_cond = (
 		 + geom_point()
  		 + geom_errorbar(aes(x = 'Time',
  						   ymin = "mean_voltage-voltage_std",
- 						   ymax = "mean_voltage+voltage_std"),
-					   width = error_width)
+ 						   ymax = "mean_voltage+voltage_std"))
+# 					   width = error_width)
 #   		 + scale_x_continuous(limits=x_lims,breaks=range(x_lims[0],x_lims[1]+1,1))
  		 + theme_bw()
  		 + theme(legend_key = element_rect(fill = "white", color = 'white'),
@@ -211,7 +214,7 @@ fig_xsize = 20
 fig_ysize = 10
 
 plot_taps_ave_cond = (
- 		 ggplot(df_voltage_5,
+ 		 ggplot(df_voltage_8,
 				   aes(x = 'Time', y = 'mean_voltage',
 					   group = 'label',
 					   color = 'Cond'))
@@ -219,9 +222,9 @@ plot_taps_ave_cond = (
 #					   shape = 'perturb_type'))
  		 + geom_path()
 		 + geom_point()
-#  		 + geom_errorbar(aes(x = 'Time',
-#  						   ymin = "mean_voltage-voltage_std",
-#  						   ymax = "mean_voltage+voltage_std"),
+ 		 + geom_errorbar(aes(x = 'Time',
+ 						   ymin = "mean_voltage-voltage_std",
+ 						   ymax = "mean_voltage+voltage_std"))
 # 					   width = error_width)
 #   		 + scale_x_continuous(limits=x_lims,breaks=range(x_lims[0],x_lims[1]+1,1))
  		 + theme_bw()
@@ -285,6 +288,12 @@ print(plot_taps_ave_cond)
 
 #%%%
 
+df_voltage_8[['Effector', 'Period']] = df_voltage_8['Cond'].str.extract('(\w+)(\w+)', expand=True)
+df_voltage_8['Period']= df_voltage_8['Period'].replace('1','444')
+df_voltage_8['Period']= df_voltage_8['Period'].replace('2','666')
+
+#%%%
+
 fig_xsize = 20
 fig_ysize = 10
 
@@ -292,22 +301,33 @@ plot_taps_ave_cond = (
  		 ggplot(df_voltage_8,
 				   aes(x = 'Time', y = 'mean_voltage',
 					   group = 'label',
-					   color = 'Cond'))
+					   color = 'Effector'))
  					   # linetype = 'Subjs'))
 #					   shape = 'perturb_type'))
+         +geom_line(size=2)
+         + facet_grid('~Period')
  		 + geom_path()
 		 + geom_point()
+          +scale_color_discrete(name = "Condicion")
+         + scale_color_cmap_d(name='viridis', lut=5)
  		 + geom_errorbar(aes(x = 'Time',
  						   ymin = "mean_voltage-ci_voltage",
- 						   ymax = "mean_voltage+ci_voltage"),
-					   width = error_width)
+ 						   ymax = "mean_voltage+ci_voltage"))
+# 					   width = error_width)
 #   		 + scale_x_continuous(limits=x_lims,breaks=range(x_lims[0],x_lims[1]+1,1))
  		 + theme_bw()
- 		 + theme(legend_key = element_rect(fill = "white", color = 'white'),
+         # +scale_color_discrete(name = "Condicion")
+         + labs(y="Voltajes [u.a.]",x='Tiempo [ms]',size=60)
+ 		 + theme(axis_title = element_text(size = 30),axis_text_y=  element_text(size = 20),
+            axis_text_x=  element_text(size = 20), legend_key_size=40, legend_title = element_text(size=30),
+            legend_key = element_rect(fill = "white", color = 'white'), legend_text=element_text(size=30)
+            ,strip_text_x=element_text(size=20),
 				figure_size = (fig_xsize, fig_ysize))
-		 )
+          )
 
-print(plot_taps_ave_cond)
+# print(plot_taps_ave_cond)
+plot_taps_ave_cond.save("aaa.pdf")
+# ggsave("Promedios_condiciones.pdf")
 
 #%% GRAFICA ASYNS VS TIEMPO ENTRE PICOS
 
