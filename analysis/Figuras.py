@@ -367,7 +367,7 @@ fig_ysize = 10
 
 plot_taps_ave_cond = (
  		 ggplot(df_2,
-				   aes(x = 'Asyns_p2-Asyns_p1', y = 'Asyns_p2',
+				   aes(x = 'Asyns_p2-Asyns_p1', y = 'Asyns_p1',
 # 					   group = 'Cond',
 					   color = 'Effector'))
  					   # linetype = ''))
@@ -460,16 +460,24 @@ plot_taps_ave_cond = (
  		 # + geom_path()
 		 + geom_point()
          # + facet_grid('~ Period')
-         +geom_smooth(method="lm",colour='Black')
+         + scale_color_cmap_d(name='viridis', lut=5)
+         # +geom_smooth(method="lm",colour='Black')
 #  		 + geom_errorbar(aes(x = 'Time',
 #  						   ymin = "mean_voltage-ci_voltage",
 #  						   ymax = "mean_voltage+ci_voltage"),
 # 					   width = error_width)
 #   		 + scale_x_continuous(limits=x_lims,breaks=range(x_lims[0],x_lims[1]+1,1))
  		 + theme_bw()
- 		 + theme(legend_key = element_rect(fill = "white", color = 'white'),
-				figure_size = (fig_xsize, fig_ysize))
-		 )
+         + labs(y="Ansincronía del segundo pico [ms]",x='Tiempo entre picos[ms]',size=60)
+  		 + theme(axis_title = element_text(size = 30),axis_text_y=  element_text(size = 20),
+             axis_text_x=  element_text(size = 20), legend_key_size=40, legend_title = element_text(size=30),
+             legend_key = element_rect(fill = "white", color = 'white'), legend_text=element_text(size=30)
+             ,strip_text_x=element_text(size=20),
+ 				figure_size = (fig_xsize, fig_ysize))
+         + geom_abline(slope=0.820, intercept=-24.546, color='black', linetype='solid',size=2)
+		 + geom_abline(slope=1, intercept=-24.546, color='black', linetype='dashed',size=2,alpha=0.6)
+         + geom_abline(slope=0, intercept=-24.546, color='black', linetype='dashed',size=2,alpha=0.6)
+         )
 
 print(plot_taps_ave_cond)
 
@@ -478,7 +486,7 @@ print(plot_taps_ave_cond)
  
 # fitting the model
 # df.columns = ['Head_size', 'Brain_weight']
-model = smf.mixedlm(formula= 'Asyns_p1 ~ Peak_interval + Period', data=df_asyns, groups= df_asyns['Subjs']).fit()
+model = smf.mixedlm(formula= 'Asyns_p2 ~ Peak_interval + Period', data=df_asyns, groups= df_asyns['Subjs']).fit()
 # model_anova = sm.stats.anova_lm(model)
 # model summary
 print(model.summary())

@@ -35,8 +35,8 @@ from scipy.signal import find_peaks
 import math
 import glob
 import json
-# from IPython import get_ipython
-# get_ipython().run_line_magic("matplotlib","qt5")
+from IPython import get_ipython
+get_ipython().run_line_magic("matplotlib","qt5")
 
 
 #%% datos(sujeto,block,trial) = data de ese trial
@@ -76,7 +76,7 @@ voltajes = data["voltage_value"]
 x = np.linspace(0,len(voltajes)-1,len(voltajes))
 x_1 = np.linspace(0,len(data1)-1,len(data1))
 x_1 = [8,106,204,302,400,]
-x_1 = np.linspace(8,1880,20)
+x_1 = np.linspace(0,1880,20)
 
 
 plt.close("all")
@@ -84,11 +84,22 @@ fig, axs = plt.subplots(2,figsize = (20,6),sharex=True)
 # fig.suptitle('Vertically stacked subplots')
 colors=plt.cm.viridis(np.linspace(0,1,5))
 axs[1].plot(x,voltajes,color=colors[0])
-axs[0].plot(x_1,data1[4:],color=colors[0])
-axs[0].plot(x_1,data1[4:],'o',color=colors[2],markersize=10)
-axs[0].set_ylabel("Asincronías [ms]",size="20")
 axs[1].set_ylabel("Voltajes [u.a]",size="20")
 axs[1].set_xlabel("Tiempo [ms]",size="20")
+
+x_labels = []
+labels = []
+for i in range(20):
+    x_labels.append(0+98.7*i)
+    x_labels.append(50+98.7*i)
+    labels.append("0")
+    labels.append("50")
+axs[1].set_xticks(x_labels, labels)
+
+axs[0].plot(x_labels[0::2],data1[4:],color=colors[0])
+axs[0].plot(x_labels[0::2],data1[4:],'o',color=colors[2],markersize=10)
+axs[0].set_ylabel("Asincronías [ms]",size="20")
+
 axs[0].grid()
 axs[1].grid()
 plt.tight_layout()
