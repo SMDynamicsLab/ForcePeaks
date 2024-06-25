@@ -37,7 +37,7 @@ noise_amp = 120
 path = '../data/'
 recorded_subject_pseudos_fname = path + 'pseudonyms.dat'
 recorded_subject_numbers_fname = path + 'registered_subjects.dat'
-presentation_orders_fname = path + 'presentation_orders.csv'
+presentation_orders_fname = path + 'Presentation_orders.csv'
 
 # get effector and period from condition string, e.g. 'D1'
 def get_effectors(condition):
@@ -96,8 +96,8 @@ experiment_parameters_dict = vars2dict(['period_list_dict','n_stims','n_trials_p
 
 # open arduino serial port
 # arduino = serial.Serial('COM3', 9600) # windows 115200 57600
-arduino = serial.Serial('COM3', 57600)
-# arduino = serial.Serial('/dev/ttyACM0', 9600) # linux
+# arduino = serial.Serial('COM3', 57600)
+arduino = serial.Serial('/dev/ttyACM0', 57600) # linux
 
 # block loop
 for block in range(0,n_blocks):
@@ -132,7 +132,7 @@ for block in range(0,n_blocks):
         time.sleep(wait)
 
 		# start trial
-        message = str.encode(";S%c;F%c;N%c;A%d;I%d;n%d;T%d;X" % ('B', 'B', 'B', noise_amp, ISI, n_stims, sensorThreshold))
+        message = str.encode(";S%c;F%c;N%c;A%d;I%d;n%d;T%d;X" % ('B', 'N', 'B', noise_amp, ISI, n_stims, sensorThreshold))
         arduino.write(message)
         messages.append(message.decode())
 		# (trial under arduino control)
@@ -240,11 +240,11 @@ arduino.close()
 #%%
 
 
-x = np.linspace(0,len(voltage_value)-1,len(voltage_value))
+#x = np.linspace(0,len(voltage_value)-1,len(voltage_value))
 
-plt.figure()
-plt.plot(x,voltage_value)
-plt.show()
+#plt.figure()
+#plt.plot(x,voltage_value)
+#plt.show()
 
 
 
