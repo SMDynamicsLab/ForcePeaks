@@ -205,4 +205,3 @@ df_posta['Period']= df_posta['Period'].replace('2','666')
 
 df_posta.to_csv('../data/Df_2025.csv')
 df_voltage.to_csv('../data/Df_Voltage_2025.csv')
-# %%
