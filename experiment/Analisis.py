@@ -36,7 +36,7 @@ import math
 import glob
 import json
 from IPython import get_ipython
-get_ipython().run_line_magic("matplotlib","qt5")
+#get_ipython().run_line_magic("matplotlib","qt5")
 
 
 #%% datos(sujeto,block,trial) = data de ese trial
@@ -45,17 +45,17 @@ get_ipython().run_line_magic("matplotlib","qt5")
 # Funcion para abrir los datos de un trial especifico de algun sujeto
 def datos(numero_de_sujeto, block, trial):
     # Primero que recopile los datos
-    register_subjs_path = 'registered_subjects.dat'
+    register_subjs_path = '../data/registered_subjects.dat'
     with open(register_subjs_path,"r") as fp:
         subj_number_fullstring = fp.readlines()[numero_de_sujeto].replace("\n", "") # devuelve el S01 si #sujeto = 1
    
-    
-    for filename in os.listdir(): # en el () va el path
+    print(subj_number_fullstring)
+    for filename in os.listdir('../data'): # en el () va el path
         if filename.startswith('S' + subj_number_fullstring) and filename.endswith("block" + str(block) + "-" + "trial" + str(trial) + ".dat"):
             data_fname = filename
-            
-    # print(data_fname)
-    file_to_load = glob.glob(data_fname)[0]
+    
+    print(data_fname)
+    file_to_load = glob.glob(f"../data/{data_fname}")[0]
     f_to_load = open(file_to_load,"r")
     content = f_to_load.read()
     f_to_load.close()
@@ -152,8 +152,8 @@ def tap_separator(voltajes,tap_length):
 
 #%% CARGAR DATAFRAME
 
-df = pd.read_csv("Df.csv")
-df_voltage = pd.read_csv("Df_Voltage.csv")
+df = pd.read_csv("../data/Df.csv")
+df_voltage = pd.read_csv("../data/Df_Voltage.csv")
 
 df_voltage_2 = df_voltage.copy(deep=True)
 df_voltage_2['Subjs'] = df_voltage_2.Subjs.astype('string')
@@ -278,7 +278,7 @@ trials_per_block = 9
 blocks_per_subj = 4
 ppf = 6 # el primer pico de fuerza que medimos (tiramos los primeros 5)
 heigth_interval = 10 # diferencia minima de altura entre el primer pico y el primer minimo
-register_subjs_path = 'registered_subjects.dat'
+register_subjs_path = '../data/registered_subjects.dat'
 subjects = []
 with open(register_subjs_path,"r") as fp:
     for i in fp.readlines():
@@ -345,7 +345,7 @@ tap_length = 50
 trials_per_block = 9 
 blocks_per_subj = 4
 
-register_subjs_path = 'registered_subjects.dat'
+register_subjs_path = '../data/registered_subjects.dat'
 subjects = []
 with open(register_subjs_path,"r") as fp:
     for i in fp.readlines():
@@ -381,7 +381,7 @@ for s in range(len(subjects)):
 #%% cond_of_trial()
 
 def cond_of_trial(subject,block,trial,trials_per_block):
-    path_po = 'presentation_orders.csv'
+    path_po = '../data/presentation_orders.csv'
     with open(path_po, 'r') as file:
         f = file.readlines()
     cond =  list(f[1+ trial+block*trials_per_block].split(","))[subject + 2]
@@ -390,7 +390,7 @@ def cond_of_trial(subject,block,trial,trials_per_block):
     
 #%% Data Frame de Tiempos y Voltajes
 blocks_per_subj = 4
-register_subjs_path = 'registered_subjects.dat'
+register_subjs_path = '../data/registered_subjects.dat'
 subjects = [0]
 with open(register_subjs_path,"r") as fp:
     for i in fp.readlines():
