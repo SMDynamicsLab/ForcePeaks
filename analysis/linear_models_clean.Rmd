@@ -1,0 +1,240 @@
+---
+title: "Linear models - ForcePeaks 2025"
+output: html_document
+date: "2025-11-21"
+---
+
+```{r setup, include=FALSE}
+
+pacman::p_load(tidyverse, lme4, broom, modelsummary, patchwork, here, modelr, wesanderson)
+
+
+```
+
+```{r load_data, echo=FALSE}
+# All conditions
+
+data <- read_csv(here("data", "Df_2025.csv"), show_col_types = FALSE) %>%
+	select(- '...1') %>%
+	mutate(Effector = if_else(Effector == "D", "Finger", "Wrist"),
+			Feedback = if_else(Subjs <= 26, "Feedback", "No_Feedback"))
+
+data$Period <- factor(data$Period, levels=c('444','666'), ordered=TRUE)
+
+datasummary_skim(data)
+
+
+```
+
+
+```{r remove_out_of_phase, echo=FALSE}
+# Detect and remove out-of-phase data
+# (trials having taps that occur far from either stimuli)
+
+period_fraction_limit = 0.3
+outphase_fraction_limit = 0.5
+
+# plot out-of-phase trials
+data %>% filter(
+	Asyns_c > period_fraction_limit*as.numeric(as.character(Period))
+	| Asyns_c < -period_fraction_limit*as.numeric(as.character(Period))) %>%
+	ggplot(aes(x = Peak_interval, y = Asyns_c, color = factor(Subjs))) +
+	geom_point(alpha = 0.2) +
+	geom_line(aes(group = interaction(Subjs, Trial))) +
+	facet_wrap(Effector~Period) +
+	theme_minimal() +
+	theme_bw() +
+	theme(legend.position = "top",
+		strip.background = element_blank())
+
+# detect out-of-phase trials
+data_outphase <- data %>% 
+	group_by(Subjs, Cond, Trial) %>%
+	mutate(nTaps = n(),
+		m_asyn = mean(Asyns_c)) %>%
+	# taps with a large asynchrony (close to half period)
+	filter(
+		Asyns_c > period_fraction_limit*as.numeric(as.character(Period))
+		| Asyns_c < -period_fraction_limit*as.numeric(as.character(Period))) %>%
+	group_by(Subjs, Cond, Trial, Period) %>%
+	summarise(count_outphase = n(),
+			nTaps = first(nTaps),
+			m_asyn = first(m_asyn),
+			outphase_fraction = count_outphase/nTaps) %>%
+	# trials with a large fraction of out-of-phase taps
+	filter(outphase_fraction > outphase_fraction_limit) %>%
+	arrange(desc(count_outphase))
+
+# remove out-of-phase trials
+data_inphase <- data %>%
+	anti_join(data_outphase, by = c("Subjs", "Cond", "Trial"))
+
+
+```
+
+
+
+```{r chack_balance, echo=FALSE}
+
+# # detect short trials
+# data_inphase_subj <- data_inphase %>%
+# 	group_by(Subjs,Trial,Cond) %>%
+# 	summarise(n_taps = n()) %>%
+# 	filter(n_taps < 5)
+# 
+# # remove short trials
+# data_inphase <- data_inphase %>%
+# 	anti_join(data_inphase_subj, by = c("Subjs", "Cond", "Trial"))
+
+
+```
+
+
+```{r with_feedback, echo=FALSE}
+
+# WithFeedback data
+
+data_inphase_summ <- data_inphase %>%
+	group_by(Subjs, Period, Cond, Trial, Effector, Feedback) %>%
+	summarise(m_Asyn_c = mean(Asyns_c),
+			Peak_interval = mean(Peak_interval))
+
+data_inphase_summ_feedback <- data_inphase_summ %>%
+	filter(Feedback == "Feedback")
+
+m_Asyn_c <- data_inphase_summ_feedback %>%
+	group_by(Period) %>%
+	summarise(m_Asyn_c = mean(m_Asyn_c))
+
+plot_withfeedback <- data_inphase_summ_feedback %>%
+	ggplot(aes(x = Peak_interval, y = m_Asyn_c)) +
+	geom_point(aes(color = Effector), alpha = 0.2) +
+	geom_smooth(method = "lm", color = "black") +
+	geom_abline(data = m_Asyn_c, aes(intercept = m_Asyn_c, slope = 0),
+				linetype = "dashed", color = "darkgreen") +
+	geom_abline(data = m_Asyn_c, aes(intercept = m_Asyn_c, slope = -1),
+				linetype = "dashed", color = "darkgreen") +
+	facet_wrap(.~Period) +
+	scale_color_manual(values = c("#0072B2", "#D55E00")) +
+	theme_minimal() +
+	theme(legend.position = "top",
+		plot.background = element_rect(fill = "white", color = NA),
+		strip.background = element_blank()) +
+	labs(title = "With Feedback")
+
+ggsave(here("tests","plot_withfeedback.png"), plot=plot_withfeedback, width=8, height=4, dpi=150)
+
+
+# linear regression
+model_feedback <- lmer(data = data_inphase_summ_feedback,
+	m_Asyn_c ~ Peak_interval * Period + (1|Subjs))
+# performance::check_model(model_feedback)
+
+# plot_assumptions <- plot(performance::check_model(model_feedback, panel=FALSE))
+# plot_assumptions[[6]]
+
+summary(model_feedback)
+car::Anova(model_feedback)
+
+
+```
+
+
+
+```{r no_feedback, echo=FALSE}
+
+# NoFeedback data
+
+data_inphase_summ_nofeedback <- data_inphase_summ %>%
+	filter(Feedback == "No_Feedback") 
+
+m_Asyn_c <- data_inphase_summ_nofeedback %>%
+	group_by(Period) %>%
+	summarise(m_Asyn_c = mean(m_Asyn_c))
+
+plot_nofeedback <- data_inphase_summ_nofeedback %>%
+	ggplot(aes(x = Peak_interval, y = m_Asyn_c)) +
+	geom_point(aes(color = Effector), alpha = 0.2) +
+	geom_smooth(method = "lm", color = "black") +
+	geom_abline(data = m_Asyn_c, aes(intercept = m_Asyn_c, slope = 0),
+				linetype = "dashed", color = "darkgreen") +
+	geom_abline(data = m_Asyn_c, aes(intercept = m_Asyn_c, slope = -1),
+				linetype = "dashed", color = "darkgreen") +
+	facet_wrap(.~Period) +
+	scale_color_manual(values = c("#0072B2", "#D55E00")) +
+	theme_minimal() +
+	theme(legend.position = "top",
+		plot.background = element_rect(fill = "white", color = NA),
+		strip.background = element_blank()) +
+	labs(title = "No Feedback")
+
+ggsave(here("tests","plot_nofeedback.png"), plot=plot_nofeedback, width=8, height=4, dpi=150)
+
+
+# linear regression
+model_nofeedback <- lmer(data = data_inphase_summ_nofeedback,
+                   m_Asyn_c ~ Peak_interval * Period + (1|Subjs))
+# performance::check_model(model_nofeedback)
+
+# plot_assumptions <- plot(performance::check_model(model_nofeedback, panel=FALSE))
+# plot_assumptions[[6]]
+
+summary(model_nofeedback)
+car::Anova(model_nofeedback)
+
+
+
+```
+
+```{r model_comparison}
+
+# Compare individual models
+models <- list("Model with feedback" = model_feedback,
+				"Model without feedback" = model_nofeedback)
+
+modelsummary(models,
+			estimate  = "{estimate} [{conf.low}, {conf.high}]",
+			statistic = "({p.value})",
+			coef_omit = "Intercept", gof_map = NA)
+
+b <- list(geom_vline(xintercept = 0, color = 'orange'))
+
+modelplot(models, background = b) +
+	labs(x = 'Coefficients', y = 'Term names') +
+	aes(linetype = ifelse(p.value < 0.05, "Significant", "Not significant")) +
+	scale_color_manual(values = wes_palette('Darjeeling1'))
+
+
+
+```
+
+
+```{r full_model, echo=FALSE}
+
+# linear regression
+model_full <- lmer(data = data_inphase_summ,
+                   m_Asyn_c ~ Peak_interval*Period*Feedback + (1|Subjs))
+
+m_Asyn_c <- data_inphase_summ %>%
+	group_by(Period, Feedback) %>%
+	summarise(m_Asyn_c = mean(m_Asyn_c))
+
+data_inphase_summ %>% ggplot(aes(x = Peak_interval, y = m_Asyn_c)) +
+	geom_point(aes(color = Effector), alpha = 0.2) +
+	geom_smooth(method = "lm", color = "black") +
+	geom_abline(data = m_Asyn_c, aes(intercept = m_Asyn_c, slope = 0),
+				linetype = "dashed", color = "darkgreen") +
+	geom_abline(data = m_Asyn_c, aes(intercept = m_Asyn_c, slope = -1),
+				linetype = "dashed", color = "darkgreen") +
+	facet_grid(Feedback~Period) +
+	scale_color_manual(values = c("#0072B2", "#D55E00")) +
+	theme_minimal()
+
+
+summary(model_full)
+car::Anova(model_full)
+
+
+```
+
+
