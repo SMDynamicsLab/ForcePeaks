@@ -1,0 +1,191 @@
+---
+title: "Linear models - ForcePeaks 2025"
+output: html_document
+date: "2025-11-21"
+---
+
+## Load libraries
+```{r setup, include=FALSE}
+
+pacman::p_load(tidyverse, lmerTest, broom, modelsummary, patchwork, here, modelr, wesanderson, emmeans)
+
+
+```
+
+
+## Load data
+```{r load_data, echo=FALSE}
+# All conditions
+
+data <- read_csv(here("data", "Df_2025.csv"), show_col_types = FALSE) %>%
+	select(- '...1') %>%
+	mutate(Effector = if_else(Effector == "D", "Finger", "Wrist"),
+			Feedback = if_else(Subjs <= 26, "Feedback", "No_Feedback"))
+data$Period <- factor(data$Period, levels=c('444','666'), ordered=TRUE)
+
+datasummary_skim(data)
+
+
+```
+
+
+## Individual distributions of Peak_interval
+```{r interpeak_interval_distributions, echo=FALSE}
+
+plot_IPI_distributions <- data %>%
+	ggplot(aes(x = Peak_interval)) +
+	geom_density(aes(color = Effector,
+			   fill = Effector),
+				 alpha=0.75) +
+	facet_wrap(~Subjs) +
+	scale_color_manual(values = c("#0072B2", "#D55E00")) +
+	theme_minimal() +
+	theme(legend.position = "top",
+		plot.background = element_rect(fill = "white", color = NA),
+		strip.background = element_blank()) +
+	labs(title = "With Feedback")
+plot_IPI_distributions
+
+# remove subjects with inverted distributions:
+# Peak_interval(Wrist) > Peak_interval(Finger)
+# (results are not dependent on this---it's just cleaner)
+subjs_inverted_dists <- c(24,51,50)
+removed_subjs <- c(subjs_inverted_dists)
+data <- data %>%
+	filter(! Subjs %in% removed_subjs)
+
+
+```
+
+
+## Out-of-phase data (subjects not following instructions)
+```{r remove_out_of_phase, echo=FALSE}
+# Detect and remove out-of-phase data
+
+period_fraction_max = 0.25
+outphase_fraction_max = 0.25
+
+
+# condition for out-of=phase taps: large asynchrony close to half period
+# (relative to mean asynchrony)
+outphase_condition <- "Asyns_c + m_asyn > period_fraction_max*as.numeric(as.character(Period)) | Asyns_c + m_asyn < -period_fraction_max*as.numeric(as.character(Period))"
+
+# plot out-of-phase subjects
+plot_outphase <- data %>%
+	group_by(Subjs, Cond, Trial) %>%
+	mutate(nTaps = n(),
+		m_asyn = mean(Asyns_c)) %>%
+	filter(eval(parse(text=outphase_condition))) %>%
+	ggplot(aes(x = Peak_interval, y = Asyns_c, color = factor(Subjs))) +
+	geom_point(alpha = 0.2) +
+	geom_line(aes(group = interaction(Subjs, Trial))) +
+	facet_wrap(Effector~Period) +
+	theme_minimal() +
+	theme_bw() +
+	theme(legend.position = "top",
+		strip.background = element_blank())
+plot_outphase
+
+# detect out-of-phase trials
+data_outphase <- data %>% 
+	group_by(Subjs, Cond, Trial) %>%
+	mutate(nTaps = n(),
+		m_asyn = mean(Asyns_c)) %>%
+	# detect out-of-phase taps
+	filter(eval(parse(text=outphase_condition))) %>%
+	group_by(Subjs, Cond, Trial, Period) %>%
+	summarise(count_outphase = n(),
+			nTaps = first(nTaps),
+			m_asyn = first(m_asyn),
+			outphase_fraction = count_outphase/nTaps) %>%
+	# detect trials with a large fraction of out-of-phase taps
+	filter(outphase_fraction > outphase_fraction_max) %>%
+	arrange(desc(count_outphase))
+# remove out-of-phase trials
+data_inphase <- data %>%
+	anti_join(data_outphase, by = c("Subjs", "Cond", "Trial"))
+
+
+```
+
+
+## Outliers
+```{r outliers, echo=FALSE}
+
+# detect and remove outliers (Tukey's fences)
+data_inphase <- data_inphase %>%
+	group_by(Subjs, Cond) %>%
+	mutate(Q1 = quantile(Asyns_c, 0.25),
+			Q3 = quantile(Asyns_c, 0.75),
+			lower_bound = Q1 - 1.5*(Q3-Q1),
+			upper_bound = Q3 + 1.5*(Q3-Q1)) %>%
+  filter(Asyns_c >= lower_bound & Asyns_c <= upper_bound) %>%
+  select(-Q1, -Q3, -lower_bound, -upper_bound) %>%
+  ungroup()
+
+# detect and remove extremely short trials
+data_inphase_subj <- data_inphase %>%
+	group_by(Subjs,Trial,Cond) %>%
+	summarise(n_taps = n()) %>%
+	filter(n_taps <= 2)
+data_inphase <- data_inphase %>%
+	anti_join(data_inphase_subj, by = c("Subjs", "Cond", "Trial"))
+
+
+```
+
+
+## Full model
+```{r full_model, echo=FALSE}
+
+# linear regression (random intercepts AND slopes!)
+model_full <- lmer(data = data_inphase,
+				Asyns_c ~ Peak_interval*Period*Feedback
+						+ (1+Peak_interval|Subjs),
+				control = lmerControl(optimizer ="Nelder_Mead"))
+
+# add individual predictions
+data_inphase <- data_inphase %>%
+	add_predictions(model_full)
+
+# compute averages for plotting theoretical trends
+m_Asyn_c <- data_inphase %>%
+	group_by(Period, Feedback) %>%
+	summarise(m_Asyn_c = mean(Asyns_c))
+
+# plot
+plot_fullmodel <- data_inphase %>%
+	ggplot(aes(x = Peak_interval, y = Asyns_c)) +
+	geom_point(aes(color = Effector), alpha = 0.2) +
+	# optional: plot individual predictions
+	geom_line(aes(y = pred, group = Subjs), color="darkgray") +
+	geom_smooth(method = "lm", color = "black") +
+	geom_abline(data = m_Asyn_c, aes(intercept = m_Asyn_c, slope = 0),
+				linetype = "dashed", color = "black") +
+	geom_abline(data = m_Asyn_c, aes(intercept = m_Asyn_c, slope = -1),
+				linetype = "dashed", color = "black") +
+	facet_grid(Feedback~Period) +
+	scale_color_manual(values = c("#0072B2", "#D55E00")) +
+	theme_minimal()
+plot_fullmodel
+
+# show statistics
+summary(model_full)
+anova(model_full)
+print("(nonsignificant effect of Peak_interval)")
+
+model_full_emtrends <- emtrends(model_full, pairwise~Period:Feedback,
+								var="Peak_interval",
+								lmer.df = "satterthwaite",
+								lmerTest.limit = 10000)
+model_full_emtrends
+print("(slopes are not significantly different from each other---With Feedback slopes are negative, though)")
+
+# check regression assumptions
+plot_checkmodel <- plot(performance::check_model(model_full, panel=FALSE))
+plot_checkmodel
+
+
+```
+
+
