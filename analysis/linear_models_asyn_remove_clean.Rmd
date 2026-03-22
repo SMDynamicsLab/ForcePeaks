@@ -138,6 +138,9 @@ data_inphase <- data_inphase %>%
 ## Full model
 ```{r full_model, echo=FALSE}
 
+fsize <- 9
+msize <- 1
+
 # linear regression (random intercepts AND slopes!)
 model_full <- lmer(data = data_inphase,
 				Asyns_c ~ Peak_interval*Period*Feedback
@@ -156,9 +159,9 @@ m_Asyn_c <- data_inphase %>%
 # plot
 plot_fullmodel <- data_inphase %>%
 	ggplot(aes(x = Peak_interval, y = Asyns_c)) +
-	geom_point(aes(color = Effector), alpha = 0.2) +
+	geom_point(aes(color = Effector), alpha = 0.2, size=msize) +
 	# optional: plot individual predictions
-	geom_line(aes(y = pred, group = Subjs), color="darkgray") +
+	# geom_line(aes(y = pred, group = Subjs), color="darkgray") +
 	geom_smooth(method = "lm", color = "black") +
 	geom_abline(data = m_Asyn_c, aes(intercept = m_Asyn_c, slope = 0),
 				linetype = "dashed", color = "black") +
@@ -166,8 +169,13 @@ plot_fullmodel <- data_inphase %>%
 				linetype = "dashed", color = "black") +
 	facet_grid(Feedback~Period) +
 	scale_color_manual(values = c("#0072B2", "#D55E00")) +
-	theme_minimal()
+	theme_minimal(base_size=fsize)
 plot_fullmodel
+
+ggsave("plot_full.pdf", plot=plot_fullmodel, width=6, height=4)
+ggsave("plot_full.png", plot=plot_fullmodel, width=6, height=4, bg='white',dpi=150)
+
+
 
 # show statistics
 summary(model_full)
@@ -181,9 +189,9 @@ model_full_emtrends <- emtrends(model_full, pairwise~Period:Feedback,
 model_full_emtrends
 print("(slopes are not significantly different from each other---With Feedback slopes are negative, though)")
 
-# check regression assumptions
-plot_checkmodel <- plot(performance::check_model(model_full, panel=FALSE))
-plot_checkmodel
+# # check regression assumptions
+# plot_checkmodel <- plot(performance::check_model(model_full, panel=FALSE))
+# plot_checkmodel
 
 
 ```
