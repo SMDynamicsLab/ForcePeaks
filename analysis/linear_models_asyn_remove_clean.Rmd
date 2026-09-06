@@ -187,7 +187,7 @@ plot_fullmodel <- data_inphase %>%
 plot_fullmodel
 
 ggsave("plot_full.pdf", plot=plot_fullmodel, width=8, height=4)
-ggsave("plot_full.png", plot=plot_fullmodel, width=8, height=4, bg='white',dpi=150
+ggsave("plot_full.png", plot=plot_fullmodel, width=8, height=4, bg='white',dpi=150)
 
 
 
